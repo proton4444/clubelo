@@ -36,7 +36,7 @@ It's designed for:
 
 - **Node.js** with **TypeScript**
 - **PostgreSQL** database
-- **Prisma ORM** (for database schema & migrations)
+- **node-postgres (pg)** - native PostgreSQL driver
 - **Express** (for REST API)
 - **csv-parse** (for parsing ClubElo CSV data)
 
@@ -67,12 +67,17 @@ cp .env.example .env
 Then edit `.env` and set your database connection string:
 
 ```env
-DATABASE_URL="postgresql://postgres:password@localhost:5432/clubelo"
+# Using Unix socket for local development (simplest, no password needed)
+DATABASE_URL="postgresql://postgres@/clubelo?host=/var/run/postgresql"
+
+# Or for remote/TCP connections:
+# DATABASE_URL="postgresql://postgres:password@localhost:5432/clubelo"
+
 CLUBELO_API_BASE="http://api.clubelo.com"
 PORT=3000
 ```
 
-**Important:** Replace `postgres:password@localhost:5432/clubelo` with your actual PostgreSQL credentials and database name.
+**Note:** The Unix socket connection (`?host=/var/run/postgresql`) is simpler for local development and doesn't require a password. For remote connections, use the TCP format with your actual credentials.
 
 ### 4. Create the Database
 
@@ -86,15 +91,23 @@ createdb clubelo
 psql -c "CREATE DATABASE clubelo;"
 ```
 
-### 5. Run Database Migrations
+### 5. Create Database Schema
 
-This creates the `clubs` and `elo_ratings` tables:
+Apply the SQL schema to create the `clubs` and `elo_ratings` tables:
 
 ```bash
-npm run db:migrate
+psql -d clubelo -f schema.sql
 ```
 
-You should see output confirming the migration was applied.
+You should see output confirming the tables were created.
+
+**Optional:** Load sample test data to try out the API immediately:
+
+```bash
+psql -d clubelo -f test-data.sql
+```
+
+This loads 10 sample clubs with ratings for testing.
 
 ---
 
@@ -423,25 +436,22 @@ clubelo/
 # Install dependencies
 npm install
 
-# Run database migrations
-npm run db:migrate
+# Create database schema
+psql -d clubelo -f schema.sql
 
-# Deploy migrations (production)
-npm run db:deploy
+# Load sample test data
+psql -d clubelo -f test-data.sql
 
-# Open Prisma Studio (visual database editor)
-npm run db:studio
-
-# Import daily snapshot
+# Import daily snapshot from ClubElo API
 npm run import:clubelo -- --date=2025-11-18
 
-# Import club history
+# Import full history for a specific club
 npm run import:clubelo:club -- --club="ManCity"
 
-# Start API server (development)
+# Start API server (development with auto-reload)
 npm run dev
 
-# Build for production
+# Build TypeScript to JavaScript (for production)
 npm run build
 
 # Start API server (production)
