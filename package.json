@@ -1,0 +1,33 @@
+{
+  "name": "clubelo-data-layer",
+  "version": "1.0.0",
+  "description": "Fast-path data layer for ClubElo ratings",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "import:clubelo": "tsx src/scripts/import-daily.ts",
+    "import:clubelo:club": "tsx src/scripts/import-club.ts"
+  },
+  "keywords": ["elo", "football", "ratings"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.20.0",
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.0",
+    "prisma": "^5.20.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.5"
+  }
+}

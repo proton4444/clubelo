@@ -1,0 +1,61 @@
+// Prisma schema for ClubElo data layer
+// This defines our database structure for storing football club Elo ratings
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Represents a football club
+model Club {
+  id           Int      @id @default(autoincrement())
+  // The name used in the ClubElo API (e.g., "ManCity")
+  apiName      String   @unique @map("api_name")
+  // Human-readable display name (e.g., "Manchester City")
+  displayName  String   @map("display_name")
+  // Country code (e.g., "ENG")
+  country      String
+  // League level (1 = top division, 2 = second division, etc.)
+  level        Int
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // One club can have many Elo rating snapshots over time
+  eloRatings   EloRating[]
+
+  @@map("clubs")
+}
+
+// Represents a club's Elo rating on a specific date
+model EloRating {
+  id        Int      @id @default(autoincrement())
+  // Foreign key to the club
+  clubId    Int      @map("club_id")
+  // The date this rating applies to
+  date      DateTime @db.Date
+  // The club's rank on this date (from ClubElo's Rank field)
+  rank      Int
+  // Country code (duplicated from club for convenience in queries)
+  country   String
+  // League level (duplicated from club for convenience)
+  level     Int
+  // The Elo rating value
+  elo       Float
+  // Source of the rating (default 'clubelo', allows for future custom ratings)
+  source    String   @default("clubelo")
+
+  // Relation to the club
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  // Ensure we only have one rating per club per date
+  @@unique([clubId, date])
+  // Index for fast date-based queries (e.g., "get latest snapshot")
+  @@index([date])
+  // Index for filtering by country
+  @@index([country])
+  @@map("elo_ratings")
+}
