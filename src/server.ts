@@ -30,34 +30,60 @@ app.get('/health', (req: Request, res: Response) => {
  *
  * Query parameters:
  *   - date: ISO date string (YYYY-MM-DD), optional. Defaults to latest date.
- *   - country: Country code filter (e.g., "ENG"), optional. Defaults to all countries.
- *   - limit: Maximum number of results, optional. Defaults to 100.
+ *   - country: Country code filter (e.g., "ENG"), optional.
+ *   - level: League level filter (1, 2, etc.), optional.
+ *   - minElo: Minimum Elo rating filter, optional.
+ *   - page: Page number for pagination (starts at 1), optional. Defaults to 1.
+ *   - pageSize: Number of results per page, optional. Defaults to 100.
+ *   - limit: Legacy param, use pageSize instead. Optional.
  *
  * Example:
- *   GET /api/elo/rankings?date=2025-11-18&country=ENG&limit=20
+ *   GET /api/elo/rankings?date=2025-11-18&country=ENG&level=1&page=1&pageSize=20
+ *   GET /api/elo/rankings?minElo=1900&pageSize=50
  *
  * Response:
  *   {
  *     "date": "2025-11-18",
  *     "country": "ENG",
- *     "clubs": [
- *       {
- *         "id": 1,
- *         "apiName": "ManCity",
- *         "displayName": "Manchester City",
- *         "country": "ENG",
- *         "level": 1,
- *         "rank": 2,
- *         "elo": 1997
- *       },
- *       ...
- *     ]
+ *     "clubs": [...],
+ *     "pagination": {
+ *       "page": 1,
+ *       "pageSize": 20,
+ *       "total": 100,
+ *       "totalPages": 5
+ *     }
  *   }
  */
 app.get('/api/elo/rankings', async (req: Request, res: Response) => {
   try {
-    const { date: dateParam, country, limit: limitParam } = req.query;
-    const limit = limitParam ? parseInt(limitParam as string, 10) : 100;
+    const {
+      date: dateParam,
+      country,
+      level: levelParam,
+      minElo: minEloParam,
+      page: pageParam,
+      pageSize: pageSizeParam,
+      limit: limitParam, // Legacy support
+    } = req.query;
+
+    // Parse pagination parameters
+    const page = pageParam ? parseInt(pageParam as string, 10) : 1;
+    const pageSize = pageSizeParam
+      ? parseInt(pageSizeParam as string, 10)
+      : (limitParam ? parseInt(limitParam as string, 10) : 100);
+    const offset = (page - 1) * pageSize;
+
+    // Parse filter parameters
+    const level = levelParam ? parseInt(levelParam as string, 10) : null;
+    const minElo = minEloParam ? parseFloat(minEloParam as string) : null;
+
+    // Validate pagination
+    if (page < 1) {
+      return res.status(400).json({ error: 'Page must be >= 1' });
+    }
+    if (pageSize < 1 || pageSize > 1000) {
+      return res.status(400).json({ error: 'Page size must be between 1 and 1000' });
+    }
 
     // Determine which date to use
     let targetDate: string;
@@ -82,24 +108,49 @@ app.get('/api/elo/rankings', async (req: Request, res: Response) => {
       targetDate = new Date(latestResult.rows[0].max_date).toISOString().split('T')[0];
     }
 
-    // Build the query
-    let query = `
+    // Build the WHERE clause
+    const whereClauses = ['e.date = $1'];
+    const params: any[] = [targetDate];
+
+    if (country) {
+      whereClauses.push(`e.country = $${params.length + 1}`);
+      params.push(country);
+    }
+
+    if (level !== null) {
+      whereClauses.push(`e.level = $${params.length + 1}`);
+      params.push(level);
+    }
+
+    if (minElo !== null) {
+      whereClauses.push(`e.elo >= $${params.length + 1}`);
+      params.push(minElo);
+    }
+
+    const whereClause = whereClauses.join(' AND ');
+
+    // Count total results for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM elo_ratings e
+      WHERE ${whereClause}
+    `;
+    const countResult = await db.query(countQuery, params);
+    const totalResults = parseInt(countResult.rows[0].total, 10);
+    const totalPages = Math.ceil(totalResults / pageSize);
+
+    // Build the main query with pagination
+    const query = `
       SELECT
         c.id, c.api_name, c.display_name, c.country, c.level,
         e.rank, e.elo
       FROM elo_ratings e
       JOIN clubs c ON e.club_id = c.id
-      WHERE e.date = $1
+      WHERE ${whereClause}
+      ORDER BY e.elo DESC
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
     `;
-    const params: any[] = [targetDate];
-
-    if (country) {
-      query += ' AND e.country = $2';
-      params.push(country);
-    }
-
-    query += ' ORDER BY e.elo DESC LIMIT $' + (params.length + 1);
-    params.push(limit);
+    params.push(pageSize, offset);
 
     // Fetch ratings for this date
     const result = await db.query(query, params);
@@ -118,7 +169,15 @@ app.get('/api/elo/rankings', async (req: Request, res: Response) => {
     res.json({
       date: targetDate,
       country: country || null,
+      level: level,
+      minElo: minElo,
       clubs,
+      pagination: {
+        page,
+        pageSize,
+        total: totalResults,
+        totalPages,
+      },
     });
 
   } catch (error) {
@@ -302,6 +361,165 @@ app.get('/api/elo/clubs', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Error fetching clubs:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/elo/fixtures
+ *
+ * Get upcoming or recent match fixtures with Elo-based predictions.
+ *
+ * Query parameters:
+ *   - date: Single date (YYYY-MM-DD) or date range, optional
+ *   - from: Start date for range (YYYY-MM-DD), optional
+ *   - to: End date for range (YYYY-MM-DD), optional
+ *   - country: Filter by country code, optional
+ *   - competition: Filter by competition name, optional
+ *   - limit: Maximum number of results, optional. Defaults to 100.
+ *
+ * Example:
+ *   GET /api/elo/fixtures
+ *   GET /api/elo/fixtures?date=2025-11-20
+ *   GET /api/elo/fixtures?from=2025-11-20&to=2025-11-30
+ *   GET /api/elo/fixtures?country=ENG&competition=Premier%20League
+ *
+ * Response:
+ *   {
+ *     "fixtures": [
+ *       {
+ *         "id": 1,
+ *         "matchDate": "2025-11-20",
+ *         "homeTeam": {
+ *           "id": 1,
+ *           "name": "Manchester City",
+ *           "country": "ENG",
+ *           "elo": 1997.5
+ *         },
+ *         "awayTeam": {
+ *           "id": 2,
+ *           "name": "Liverpool",
+ *           "country": "ENG",
+ *           "elo": 1972.1
+ *         },
+ *         "country": "ENG",
+ *         "competition": "Premier League",
+ *         "predictions": {
+ *           "homeWin": 0.45,
+ *           "draw": 0.28,
+ *           "awayWin": 0.27
+ *         }
+ *       },
+ *       ...
+ *     ]
+ *   }
+ */
+app.get('/api/elo/fixtures', async (req: Request, res: Response) => {
+  try {
+    const {
+      date: dateParam,
+      from: fromParam,
+      to: toParam,
+      country,
+      competition,
+      limit: limitParam,
+    } = req.query;
+
+    const limit = limitParam ? parseInt(limitParam as string, 10) : 100;
+
+    // Build the WHERE clause
+    const whereClauses: string[] = [];
+    const params: any[] = [];
+
+    // Handle date filtering
+    if (dateParam) {
+      // Single date
+      const date = new Date(dateParam as string);
+      if (!isNaN(date.getTime())) {
+        whereClauses.push(`f.match_date = $${params.length + 1}`);
+        params.push(date.toISOString().split('T')[0]);
+      }
+    } else if (fromParam || toParam) {
+      // Date range
+      if (fromParam) {
+        const fromDate = new Date(fromParam as string);
+        if (!isNaN(fromDate.getTime())) {
+          whereClauses.push(`f.match_date >= $${params.length + 1}`);
+          params.push(fromDate.toISOString().split('T')[0]);
+        }
+      }
+      if (toParam) {
+        const toDate = new Date(toParam as string);
+        if (!isNaN(toDate.getTime())) {
+          whereClauses.push(`f.match_date <= $${params.length + 1}`);
+          params.push(toDate.toISOString().split('T')[0]);
+        }
+      }
+    }
+
+    if (country) {
+      whereClauses.push(`f.country = $${params.length + 1}`);
+      params.push(country);
+    }
+
+    if (competition) {
+      whereClauses.push(`f.competition ILIKE $${params.length + 1}`);
+      params.push(`%${competition}%`);
+    }
+
+    const whereClause = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
+
+    // Build the query
+    const query = `
+      SELECT
+        f.id, f.match_date, f.country, f.competition,
+        f.home_elo, f.away_elo,
+        f.home_win_prob, f.draw_prob, f.away_win_prob,
+        hc.id as home_club_id, hc.display_name as home_club_name,
+        hc.country as home_club_country,
+        ac.id as away_club_id, ac.display_name as away_club_name,
+        ac.country as away_club_country
+      FROM fixtures f
+      JOIN clubs hc ON f.home_club_id = hc.id
+      JOIN clubs ac ON f.away_club_id = ac.id
+      ${whereClause}
+      ORDER BY f.match_date ASC, f.id ASC
+      LIMIT $${params.length + 1}
+    `;
+    params.push(limit);
+
+    // Fetch fixtures
+    const result = await db.query(query, params);
+
+    // Transform to response format
+    const fixtures = result.rows.map(row => ({
+      id: row.id,
+      matchDate: new Date(row.match_date).toISOString().split('T')[0],
+      homeTeam: {
+        id: row.home_club_id,
+        name: row.home_club_name,
+        country: row.home_club_country,
+        elo: parseFloat(row.home_elo),
+      },
+      awayTeam: {
+        id: row.away_club_id,
+        name: row.away_club_name,
+        country: row.away_club_country,
+        elo: parseFloat(row.away_elo),
+      },
+      country: row.country,
+      competition: row.competition,
+      predictions: {
+        homeWin: row.home_win_prob !== null ? parseFloat(row.home_win_prob) : null,
+        draw: row.draw_prob !== null ? parseFloat(row.draw_prob) : null,
+        awayWin: row.away_win_prob !== null ? parseFloat(row.away_win_prob) : null,
+      },
+    }));
+
+    res.json({ fixtures });
+
+  } catch (error) {
+    console.error('Error fetching fixtures:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

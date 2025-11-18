@@ -205,6 +205,28 @@ npm run import:clubelo:club -- --club="Barcelona"
 - Testing the import system
 - Getting detailed data before you have daily snapshots
 
+### Import Fixtures (Match Predictions)
+
+This fetches upcoming match fixtures with Elo-based predictions.
+
+**Usage:**
+
+```bash
+# Import all upcoming fixtures
+npm run import:fixtures
+
+# Import fixtures for a specific date
+npm run import:fixtures -- --date=2025-11-20
+```
+
+**What it does:**
+1. Calls `http://api.clubelo.com/fixtures` (or `/fixtures/YYYY-MM-DD`)
+2. Parses the CSV with match predictions
+3. Creates club records if they don't exist
+4. Upserts fixtures with win/draw/loss probabilities
+
+**Note:** The fixtures endpoint provides match predictions based on current Elo ratings. Run this regularly to keep upcoming matches up-to-date.
+
 ---
 
 ## API Endpoints
@@ -237,8 +259,12 @@ Get club rankings for a specific date (or the latest available).
 
 **Query parameters:**
 - `date` (optional): ISO date string (YYYY-MM-DD). Defaults to latest.
-- `country` (optional): Country code filter (e.g., "ENG"). Defaults to all.
-- `limit` (optional): Maximum results. Defaults to 100.
+- `country` (optional): Country code filter (e.g., "ENG").
+- `level` (optional): League level filter (1, 2, etc.). Filters by division level.
+- `minElo` (optional): Minimum Elo rating filter. Only returns clubs with rating >= this value.
+- `page` (optional): Page number for pagination (starts at 1). Defaults to 1.
+- `pageSize` (optional): Results per page. Defaults to 100, max 1000.
+- `limit` (optional): Legacy parameter, use `pageSize` instead.
 
 **Examples:**
 
@@ -249,11 +275,17 @@ curl http://localhost:3000/api/elo/rankings
 # Rankings for a specific date
 curl http://localhost:3000/api/elo/rankings?date=2025-11-18
 
-# Top 20 English clubs
-curl http://localhost:3000/api/elo/rankings?country=ENG&limit=20
+# Top 20 English clubs with pagination
+curl "http://localhost:3000/api/elo/rankings?country=ENG&page=1&pageSize=20"
 
-# Spanish clubs on a specific date
-curl "http://localhost:3000/api/elo/rankings?date=2025-11-18&country=ESP&limit=50"
+# Only top-tier clubs (level 1)
+curl "http://localhost:3000/api/elo/rankings?level=1"
+
+# Only clubs with Elo >= 1900
+curl "http://localhost:3000/api/elo/rankings?minElo=1900"
+
+# Combine filters: English top-tier clubs with high Elo
+curl "http://localhost:3000/api/elo/rankings?country=ENG&level=1&minElo=1950&pageSize=10"
 ```
 
 **Response:**
@@ -362,6 +394,72 @@ curl "http://localhost:3000/api/elo/clubs?q=United&country=ENG"
 }
 ```
 
+### GET `/api/elo/fixtures`
+
+Get upcoming or recent match fixtures with Elo-based win/draw/loss predictions.
+
+**Query parameters:**
+- `date` (optional): Single date (YYYY-MM-DD) to get fixtures for that day.
+- `from` (optional): Start date for range (YYYY-MM-DD).
+- `to` (optional): End date for range (YYYY-MM-DD).
+- `country` (optional): Filter by country code.
+- `competition` (optional): Filter by competition name (partial match, case-insensitive).
+- `limit` (optional): Maximum number of results. Defaults to 100.
+
+**Examples:**
+
+```bash
+# All upcoming fixtures
+curl http://localhost:3000/api/elo/fixtures
+
+# Fixtures for a specific date
+curl "http://localhost:3000/api/elo/fixtures?date=2025-11-23"
+
+# Fixtures in a date range
+curl "http://localhost:3000/api/elo/fixtures?from=2025-11-20&to=2025-11-30"
+
+# English fixtures only
+curl "http://localhost:3000/api/elo/fixtures?country=ENG"
+
+# Champions League fixtures
+curl "http://localhost:3000/api/elo/fixtures?competition=Champions"
+
+# Combine filters
+curl "http://localhost:3000/api/elo/fixtures?country=ENG&from=2025-11-23&to=2025-11-25"
+```
+
+**Response:**
+
+```json
+{
+  "fixtures": [
+    {
+      "id": 1,
+      "matchDate": "2025-11-23",
+      "homeTeam": {
+        "id": 1,
+        "name": "Manchester City",
+        "country": "ENG",
+        "elo": 1997.5
+      },
+      "awayTeam": {
+        "id": 2,
+        "name": "Liverpool",
+        "country": "ENG",
+        "elo": 1972.1
+      },
+      "country": "ENG",
+      "competition": "Premier League",
+      "predictions": {
+        "homeWin": 0.45,
+        "draw": 0.28,
+        "awayWin": 0.27
+      }
+    }
+  ]
+}
+```
+
 ---
 
 ## Frontend UI
@@ -436,7 +534,11 @@ crontab -e
 Add a line to run daily at 6 AM:
 
 ```cron
+# Import daily Elo ratings at 6 AM
 0 6 * * * cd /path/to/clubelo && npm run import:clubelo >> /var/log/clubelo-import.log 2>&1
+
+# Import fixtures at 7 AM
+0 7 * * * cd /path/to/clubelo && npm run import:fixtures >> /var/log/clubelo-fixtures.log 2>&1
 ```
 
 ### Using Windows Task Scheduler
@@ -484,10 +586,13 @@ clubelo/
 │   │   └── importer.ts       # Import logic (upsert data)
 │   ├── scripts/
 │   │   ├── import-daily.ts   # Daily snapshot import script
-│   │   └── import-club.ts    # Single club history import script
+│   │   ├── import-club.ts    # Single club history import script
+│   │   └── import-fixtures.ts # Fixtures import script
 │   └── server.ts             # Express API server + static file serving
-├── schema.sql                # Database schema (for manual setup)
-├── test-data.sql             # Sample test data
+├── schema.sql                # Database schema (clubs + elo_ratings)
+├── schema-fixtures.sql       # Fixtures table schema
+├── test-data.sql             # Sample Elo ratings test data
+├── test-data-fixtures.sql    # Sample fixtures test data
 ├── .env.example              # Example environment variables
 ├── .gitignore                # Git ignore rules
 ├── package.json              # Node.js dependencies & scripts
@@ -509,11 +614,20 @@ psql -d clubelo -f schema.sql
 # Load sample test data
 psql -d clubelo -f test-data.sql
 
+# Load sample fixtures data
+psql -d clubelo -f test-data-fixtures.sql
+
 # Import daily snapshot from ClubElo API
 npm run import:clubelo -- --date=2025-11-18
 
 # Import full history for a specific club
 npm run import:clubelo:club -- --club="ManCity"
+
+# Import upcoming fixtures
+npm run import:fixtures
+
+# Import fixtures for a specific date
+npm run import:fixtures -- --date=2025-11-20
 
 # Start API server (development with auto-reload)
 npm run dev

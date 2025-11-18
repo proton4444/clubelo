@@ -9,7 +9,7 @@ import { parse } from 'csv-parse/sync';
 import { config } from './config';
 
 /**
- * Raw row from ClubElo CSV API
+ * Raw row from ClubElo CSV API (club ratings)
  */
 export interface ClubEloRow {
   Rank: string;
@@ -19,6 +19,24 @@ export interface ClubEloRow {
   Elo: string;
   From: string;
   To: string;
+}
+
+/**
+ * Raw row from ClubElo fixtures CSV API
+ */
+export interface ClubEloFixtureRow {
+  Date: string;
+  HomeTeam: string;
+  AwayTeam: string;
+  Country: string;
+  Competition: string;
+  HomeLevel: string;
+  AwayLevel: string;
+  HomeElo: string;
+  AwayElo: string;
+  HomeProbW: string;
+  ProbD: string;
+  AwayProbW: string;
 }
 
 /**
@@ -122,4 +140,42 @@ export async function fetchClubHistory(clubName: string): Promise<ClubEloRow[]> 
   const url = `${config.clubeloApiBase}/${encodeURIComponent(clubName)}`;
   const csvText = await fetchWithRetry(url);
   return parseClubEloCsv(csvText);
+}
+
+/**
+ * Fetch upcoming fixtures with predictions
+ *
+ * @param date - Optional date in YYYY-MM-DD format. If not provided, fetches all upcoming fixtures.
+ * @returns Array of fixture rows with predictions
+ */
+export async function fetchFixtures(date?: string): Promise<ClubEloFixtureRow[]> {
+  // ClubElo fixtures endpoint (note: exact URL may vary based on their API)
+  // Using a common pattern: /fixtures or /fixtures/YYYY-MM-DD
+  let url = `${config.clubeloApiBase}/fixtures`;
+
+  if (date) {
+    // Validate date format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new Error('Date must be in YYYY-MM-DD format');
+    }
+    url = `${config.clubeloApiBase}/fixtures/${date}`;
+  }
+
+  const csvText = await fetchWithRetry(url);
+
+  try {
+    // Parse CSV with header row
+    const records = parse(csvText, {
+      columns: true,
+      skip_empty_lines: true,
+      trim: true,
+    }) as ClubEloFixtureRow[];
+
+    console.log(`Parsed ${records.length} fixtures from CSV`);
+    return records;
+
+  } catch (error) {
+    console.error('CSV parsing error:', error);
+    throw new Error(`Failed to parse fixtures CSV: ${error}`);
+  }
 }

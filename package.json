@@ -7,12 +7,9 @@
     "dev": "tsx src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "db:generate": "prisma generate",
-    "db:studio": "prisma studio",
     "import:clubelo": "tsx src/scripts/import-daily.ts",
-    "import:clubelo:club": "tsx src/scripts/import-club.ts"
+    "import:clubelo:club": "tsx src/scripts/import-club.ts",
+    "import:fixtures": "tsx src/scripts/import-fixtures.ts"
   },
   "keywords": [
     "elo",
