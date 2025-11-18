@@ -1,0 +1,267 @@
+/**
+ * Dark theme styles for ClubElo frontend
+ *
+ * Simple, clean design with dark background and good contrast
+ */
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+  line-height: 1.6;
+  padding: 20px;
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+header {
+  margin-bottom: 30px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 20px;
+}
+
+h1 {
+  color: #ffffff;
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+h2 {
+  color: #ffffff;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.subtitle {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+/* Controls section */
+.controls {
+  background-color: #242424;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: flex-end;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+}
+
+.control-group label {
+  color: #aaa;
+  font-size: 0.85rem;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.control-group input,
+.control-group select {
+  background-color: #333;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.control-group input:focus,
+.control-group select:focus {
+  outline: none;
+  border-color: #666;
+}
+
+button {
+  background-color: #4a9eff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #3a8eef;
+}
+
+button:active {
+  background-color: #2a7edf;
+}
+
+/* Table */
+.table-container {
+  overflow-x: auto;
+  background-color: #242424;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  background-color: #2a2a2a;
+}
+
+th {
+  padding: 12px;
+  text-align: left;
+  color: #fff;
+  font-weight: 600;
+  border-bottom: 2px solid #444;
+}
+
+th.rank, th.level, th.elo {
+  text-align: right;
+}
+
+tbody tr {
+  border-bottom: 1px solid #333;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+tbody tr:nth-child(even) {
+  background-color: #1f1f1f;
+}
+
+tbody tr:hover {
+  background-color: #2d2d2d;
+}
+
+td {
+  padding: 12px;
+}
+
+td.rank, td.level, td.elo {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+td.country {
+  font-weight: 500;
+  color: #aaa;
+}
+
+/* Club detail page */
+.club-header {
+  background-color: #242424;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.club-header h1 {
+  margin-bottom: 10px;
+}
+
+.club-meta {
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.club-meta span {
+  margin-right: 20px;
+}
+
+/* Chart container */
+.chart-container {
+  background-color: #242424;
+  padding: 30px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 400px;
+}
+
+/* Loading and error states */
+.loading, .error {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.1rem;
+}
+
+.loading {
+  color: #888;
+}
+
+.error {
+  color: #ff6b6b;
+  background-color: #2a1a1a;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+/* Links */
+a {
+  color: #4a9eff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .controls {
+    flex-direction: column;
+  }
+
+  .control-group {
+    width: 100%;
+  }
+
+  table {
+    font-size: 0.9rem;
+  }
+
+  th, td {
+    padding: 8px;
+  }
+
+  .chart-wrapper {
+    height: 300px;
+  }
+}

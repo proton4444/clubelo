@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Club Elo Rankings</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>Club Elo Rankings</h1>
+      <p class="subtitle">Football club ratings powered by the Elo system</p>
+    </header>
+
+    <!-- Filter Controls -->
+    <div class="controls">
+      <!-- Date selector -->
+      <div class="control-group">
+        <label for="date-input">Date</label>
+        <input type="date" id="date-input" />
+      </div>
+
+      <!-- Country filter -->
+      <div class="control-group">
+        <label for="country-select">Country</label>
+        <select id="country-select">
+          <option value="ALL">All Countries</option>
+          <option value="ENG">England</option>
+          <option value="ESP">Spain</option>
+          <option value="GER">Germany</option>
+          <option value="ITA">Italy</option>
+          <option value="FRA">France</option>
+        </select>
+      </div>
+
+      <!-- Limit selector -->
+      <div class="control-group">
+        <label for="limit-select">Show Top</label>
+        <select id="limit-select">
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+        </select>
+      </div>
+
+      <!-- Apply button -->
+      <div class="control-group">
+        <button id="apply-filters">Apply Filters</button>
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    <div id="loading" class="loading" style="display: none;">
+      Loading rankings...
+    </div>
+
+    <!-- Error state -->
+    <div id="error" class="error" style="display: none;"></div>
+
+    <!-- Rankings table -->
+    <div class="table-container" id="table-container">
+      <table id="rankings-table">
+        <thead>
+          <tr>
+            <th class="rank">Rank</th>
+            <th>Club</th>
+            <th class="country">Country</th>
+            <th class="level">Level</th>
+            <th class="elo">Elo Rating</th>
+          </tr>
+        </thead>
+        <tbody id="rankings-body">
+          <!-- Rows will be populated by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Current date info -->
+    <div id="date-info" style="margin-top: 20px; color: #888; font-size: 0.9rem;"></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/rankings.js"></script>
+</body>
+</html>

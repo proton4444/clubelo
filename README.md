@@ -12,6 +12,7 @@ This is a **fast-path data layer** for building a better ClubElo-like site. It i
 - [Database Schema](#database-schema)
 - [Importing Data](#importing-data)
 - [API Endpoints](#api-endpoints)
+- [Frontend UI](#frontend-ui)
 - [Scheduling Imports](#scheduling-imports)
 - [Project Structure](#project-structure)
 
@@ -363,6 +364,63 @@ curl "http://localhost:3000/api/elo/clubs?q=United&country=ENG"
 
 ---
 
+## Frontend UI
+
+The project includes a simple, dark-themed web interface to visualize the Elo ratings data.
+
+### Pages
+
+**Rankings Page** (`http://localhost:3000/`)
+
+The main page shows a filterable table of club rankings:
+
+- **Date selector**: Choose which date's rankings to view (defaults to latest)
+- **Country filter**: Filter by country (ALL, ENG, ESP, GER, ITA, FRA, etc.)
+- **Limit selector**: Show top 25, 50, or 100 clubs
+- **Rankings table**: Displays rank, club name, country, league level, and Elo rating
+- **Interactive rows**: Click any club to view its detailed history
+
+**Club Detail Page** (`http://localhost:3000/club.html?id=<club-id>`)
+
+Shows detailed information about a specific club:
+
+- Club name, country, and league level
+- **Elo history chart**: Interactive line chart showing rating over time (powered by Chart.js)
+- Hover over points to see exact values
+
+### Usage
+
+Once the server is running (`npm run dev`), simply open your browser to:
+
+```
+http://localhost:3000/
+```
+
+The frontend automatically calls the backend API endpoints to fetch and display data. All interactions happen client-side with JavaScript - no page reloads needed.
+
+### Tech Stack
+
+- **Vanilla HTML/CSS/JavaScript** - No framework overhead, simple and fast
+- **Chart.js** - For the Elo history visualization
+- **Dark theme** - Easy on the eyes with good contrast
+- **Responsive design** - Works on desktop and mobile
+
+### Files
+
+```
+public/
+├── index.html          # Rankings page
+├── club.html           # Club detail page
+├── css/
+│   └── styles.css      # Dark theme styles
+└── js/
+    ├── api.js          # API client helper functions
+    ├── rankings.js     # Rankings page logic
+    └── club.js         # Club detail page logic
+```
+
+---
+
 ## Scheduling Imports
 
 For production, you'll want to automatically import new data daily.
@@ -409,23 +467,32 @@ npm run import:clubelo -- --date=2025-11-18
 
 ```
 clubelo/
-├── prisma/
-│   └── schema.prisma          # Database schema definition
+├── public/                    # Frontend static files
+│   ├── index.html            # Rankings page
+│   ├── club.html             # Club detail page
+│   ├── css/
+│   │   └── styles.css        # Dark theme styles
+│   └── js/
+│       ├── api.js            # API client helper
+│       ├── rankings.js       # Rankings page logic
+│       └── club.js           # Club detail page logic
 ├── src/
 │   ├── lib/
-│   │   ├── clubelo-api.ts     # ClubElo API client (fetches CSV)
-│   │   ├── config.ts          # Configuration (env vars)
-│   │   ├── db.ts              # Prisma client singleton
-│   │   └── importer.ts        # Import logic (upsert data)
+│   │   ├── clubelo-api.ts    # ClubElo API client (fetches CSV)
+│   │   ├── config.ts         # Configuration (env vars)
+│   │   ├── db.ts             # PostgreSQL client singleton
+│   │   └── importer.ts       # Import logic (upsert data)
 │   ├── scripts/
-│   │   ├── import-daily.ts    # Daily snapshot import script
-│   │   └── import-club.ts     # Single club history import script
-│   └── server.ts              # Express API server
-├── .env.example               # Example environment variables
-├── .gitignore                 # Git ignore rules
-├── package.json               # Node.js dependencies & scripts
-├── tsconfig.json              # TypeScript configuration
-└── README.md                  # This file!
+│   │   ├── import-daily.ts   # Daily snapshot import script
+│   │   └── import-club.ts    # Single club history import script
+│   └── server.ts             # Express API server + static file serving
+├── schema.sql                # Database schema (for manual setup)
+├── test-data.sql             # Sample test data
+├── .env.example              # Example environment variables
+├── .gitignore                # Git ignore rules
+├── package.json              # Node.js dependencies & scripts
+├── tsconfig.json             # TypeScript configuration
+└── README.md                 # This file!
 ```
 
 ---

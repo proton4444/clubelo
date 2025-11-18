@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Club Detail - ClubElo</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <!-- Chart.js for rendering the Elo history chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Back link -->
+    <a href="/" class="back-link">← Back to Rankings</a>
+
+    <!-- Loading state -->
+    <div id="loading" class="loading" style="display: none;">
+      Loading club data...
+    </div>
+
+    <!-- Error state -->
+    <div id="error" class="error" style="display: none;"></div>
+
+    <!-- Club header (populated by JavaScript) -->
+    <div id="club-header" class="club-header" style="display: none;">
+      <h1 id="club-name">Club Name</h1>
+      <div class="club-meta">
+        <span id="club-country">Country</span>
+        <span id="club-level">Level</span>
+      </div>
+    </div>
+
+    <!-- Elo history chart -->
+    <div id="chart-section" class="chart-container" style="display: none;">
+      <h2>Elo Rating History</h2>
+      <div class="chart-wrapper">
+        <canvas id="elo-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Statistics (optional future enhancement) -->
+    <div id="stats-section" style="display: none;">
+      <h2>Statistics</h2>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Current Elo</span>
+          <span class="stat-value" id="stat-current-elo">-</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Highest Elo</span>
+          <span class="stat-value" id="stat-highest-elo">-</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Lowest Elo</span>
+          <span class="stat-value" id="stat-lowest-elo">-</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/club.js"></script>
+</body>
+</html>

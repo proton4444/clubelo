@@ -6,6 +6,7 @@
  */
 
 import express, { Request, Response } from 'express';
+import path from 'path';
 import { config } from './lib/config';
 import { db } from './lib/db';
 
@@ -13,6 +14,9 @@ const app = express();
 
 // Middleware
 app.use(express.json());
+
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
@@ -302,8 +306,13 @@ app.get('/api/elo/clubs', async (req: Request, res: Response) => {
   }
 });
 
-// 404 handler
-app.use((req: Request, res: Response) => {
+// Serve index.html for root path
+app.get('/', (req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
+// 404 handler for API routes only
+app.use('/api/*', (req: Request, res: Response) => {
   res.status(404).json({ error: 'Not found' });
 });
 
