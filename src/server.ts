@@ -7,13 +7,24 @@
 
 import express, { Request, Response } from 'express';
 import path from 'path';
+import swaggerUi from 'swagger-ui-express';
 import { config } from './lib/config';
 import { db } from './lib/db';
+import * as openApiSpec from '../openapi.json';
 
 const app = express();
 
 // Middleware
 app.use(express.json());
+
+// API Documentation (Swagger UI) - Development only
+// Access at: http://localhost:3000/api/docs
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'ClubElo API Documentation',
+  }));
+}
 
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '../public')));
@@ -534,16 +545,23 @@ app.use('/api/*', (req: Request, res: Response) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-// Start server
-const PORT = config.port;
-app.listen(PORT, () => {
-  console.log(`\n🚀 ClubElo API server running on http://localhost:${PORT}`);
-  console.log('\nAvailable endpoints:');
-  console.log('  GET  /health');
-  console.log('  GET  /api/elo/rankings?date=YYYY-MM-DD&country=ENG&limit=100');
-  console.log('  GET  /api/elo/clubs/:id/history?from=YYYY-MM-DD&to=YYYY-MM-DD');
-  console.log('  GET  /api/elo/clubs?q=search&country=ENG&limit=100');
-  console.log('');
-});
-
+// Export the app for testing
 export default app;
+
+// Only start the server if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  const PORT = config.port;
+  app.listen(PORT, () => {
+    console.log(`\n🚀 ClubElo API server running on http://localhost:${PORT}`);
+    console.log('\nAvailable endpoints:');
+    console.log('  GET  /health');
+    console.log('  GET  /api/elo/rankings?date=YYYY-MM-DD&country=ENG&limit=100');
+    console.log('  GET  /api/elo/clubs/:id/history?from=YYYY-MM-DD&to=YYYY-MM-DD');
+    console.log('  GET  /api/elo/clubs?q=search&country=ENG&limit=100');
+    console.log('  GET  /api/elo/fixtures?date=YYYY-MM-DD&country=ENG');
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n📚 API Documentation: http://localhost:${PORT}/api/docs`);
+    }
+    console.log('');
+  });
+}

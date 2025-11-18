@@ -12,6 +12,8 @@ This is a **fast-path data layer** for building a better ClubElo-like site. It i
 - [Database Schema](#database-schema)
 - [Importing Data](#importing-data)
 - [API Endpoints](#api-endpoints)
+- [Testing](#testing)
+- [API Documentation](#api-documentation)
 - [Frontend UI](#frontend-ui)
 - [Scheduling Imports](#scheduling-imports)
 - [Project Structure](#project-structure)
@@ -462,6 +464,121 @@ curl "http://localhost:3000/api/elo/fixtures?country=ENG&from=2025-11-23&to=2025
 
 ---
 
+## Testing
+
+The project includes comprehensive unit and integration tests to ensure code quality and reliability.
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode (reruns on file changes)
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+### Test Structure
+
+The test suite includes:
+
+**Unit Tests:**
+- CSV parsing and data mapping (`src/lib/__tests__/clubelo-api.test.ts`)
+- Import logic and database upserts (`src/lib/__tests__/importer.test.ts`)
+
+**Integration Tests:**
+- API endpoint behavior (`src/__tests__/server.test.ts`)
+- Request/response validation
+- Error handling
+- Query parameter filtering
+- Pagination logic
+
+### Test Coverage
+
+After running `npm run test:coverage`, view the detailed coverage report in the `coverage/` directory:
+
+```bash
+open coverage/lcov-report/index.html
+```
+
+### Writing New Tests
+
+Tests are written using **Jest** and **Supertest**:
+
+- Place unit tests in `src/lib/__tests__/` alongside the modules they test
+- Place integration tests in `src/__tests__/`
+- Use descriptive test names that explain what is being tested
+- Mock database calls to avoid requiring a running database
+- Follow the existing patterns for consistency
+
+**Example test:**
+
+```typescript
+describe('GET /api/elo/rankings', () => {
+  it('should return rankings for a specific date', async () => {
+    // Mock database responses
+    (db.query as jest.Mock).mockResolvedValueOnce({
+      rows: [{ total: '1' }],
+    });
+    (db.query as jest.Mock).mockResolvedValueOnce({
+      rows: [{ id: 1, display_name: 'Manchester City', elo: 2050.5 }],
+    });
+
+    const response = await request(app)
+      .get('/api/elo/rankings?date=2025-11-18')
+      .expect(200);
+
+    expect(response.body.clubs).toHaveLength(1);
+  });
+});
+```
+
+---
+
+## API Documentation
+
+Interactive API documentation is available via **Swagger UI** in development mode.
+
+### Accessing API Docs
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Then open in your browser:
+
+```
+http://localhost:3000/api/docs
+```
+
+### Features
+
+The Swagger UI documentation provides:
+
+- **Interactive API explorer**: Test endpoints directly from your browser
+- **Request/response schemas**: See exactly what data to send and expect
+- **Parameter descriptions**: Understand all query parameters and path variables
+- **Example values**: Copy-paste ready examples for all endpoints
+- **Response codes**: Know what each status code means
+
+### OpenAPI Specification
+
+The API specification is defined in `openapi.json`. This file can be:
+
+- Imported into API testing tools like Postman or Insomnia
+- Used to generate client libraries in various languages
+- Shared with frontend developers for integration
+- Validated with OpenAPI tools
+
+**Note:** API documentation is only available in development mode (when `NODE_ENV` is not set to `production`). This prevents exposing the documentation in production environments.
+
+---
+
 ## Frontend UI
 
 The project includes a simple, dark-themed web interface to visualize the Elo ratings data.
@@ -569,35 +686,44 @@ npm run import:clubelo -- --date=2025-11-18
 
 ```
 clubelo/
-├── public/                    # Frontend static files
-│   ├── index.html            # Rankings page
-│   ├── club.html             # Club detail page
+├── public/                        # Frontend static files
+│   ├── index.html                # Rankings page
+│   ├── club.html                 # Club detail page
 │   ├── css/
-│   │   └── styles.css        # Dark theme styles
+│   │   └── styles.css            # Dark theme styles
 │   └── js/
-│       ├── api.js            # API client helper
-│       ├── rankings.js       # Rankings page logic
-│       └── club.js           # Club detail page logic
+│       ├── api.js                # API client helper
+│       ├── rankings.js           # Rankings page logic
+│       └── club.js               # Club detail page logic
 ├── src/
+│   ├── __tests__/                # Integration tests
+│   │   └── server.test.ts        # API endpoint tests
 │   ├── lib/
-│   │   ├── clubelo-api.ts    # ClubElo API client (fetches CSV)
-│   │   ├── config.ts         # Configuration (env vars)
-│   │   ├── db.ts             # PostgreSQL client singleton
-│   │   └── importer.ts       # Import logic (upsert data)
+│   │   ├── __tests__/            # Unit tests
+│   │   │   ├── clubelo-api.test.ts  # CSV parsing tests
+│   │   │   └── importer.test.ts     # Import logic tests
+│   │   ├── clubelo-api.ts        # ClubElo API client (fetches CSV)
+│   │   ├── config.ts             # Configuration (env vars)
+│   │   ├── db.ts                 # PostgreSQL client singleton
+│   │   └── importer.ts           # Import logic (upsert data)
 │   ├── scripts/
-│   │   ├── import-daily.ts   # Daily snapshot import script
-│   │   ├── import-club.ts    # Single club history import script
-│   │   └── import-fixtures.ts # Fixtures import script
-│   └── server.ts             # Express API server + static file serving
-├── schema.sql                # Database schema (clubs + elo_ratings)
-├── schema-fixtures.sql       # Fixtures table schema
-├── test-data.sql             # Sample Elo ratings test data
-├── test-data-fixtures.sql    # Sample fixtures test data
-├── .env.example              # Example environment variables
-├── .gitignore                # Git ignore rules
-├── package.json              # Node.js dependencies & scripts
-├── tsconfig.json             # TypeScript configuration
-└── README.md                 # This file!
+│   │   ├── import-daily.ts       # Daily snapshot import script
+│   │   ├── import-club.ts        # Single club history import script
+│   │   └── import-fixtures.ts    # Fixtures import script
+│   └── server.ts                 # Express API server + static file serving
+├── schema.sql                    # Database schema (clubs + elo_ratings)
+├── schema-fixtures.sql           # Fixtures table schema
+├── schema-indexes.sql            # Performance indexes
+├── test-data.sql                 # Sample Elo ratings test data
+├── test-data-fixtures.sql        # Sample fixtures test data
+├── openapi.json                  # OpenAPI/Swagger API specification
+├── jest.config.js                # Jest testing configuration
+├── jest.setup.js                 # Jest test environment setup
+├── .env.example                  # Example environment variables
+├── .gitignore                    # Git ignore rules
+├── package.json                  # Node.js dependencies & scripts
+├── tsconfig.json                 # TypeScript configuration
+└── README.md                     # This file!
 ```
 
 ---
@@ -610,6 +736,8 @@ npm install
 
 # Create database schema
 psql -d clubelo -f schema.sql
+psql -d clubelo -f schema-fixtures.sql
+psql -d clubelo -f schema-indexes.sql
 
 # Load sample test data
 psql -d clubelo -f test-data.sql
@@ -637,6 +765,15 @@ npm run build
 
 # Start API server (production)
 npm start
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in watch mode
+npm run test:watch
 ```
 
 ---
