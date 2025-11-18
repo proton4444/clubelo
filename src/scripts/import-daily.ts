@@ -20,7 +20,7 @@
 
 import { fetchDailySnapshot } from '../lib/clubelo-api';
 import { importDailySnapshot } from '../lib/importer';
-import { prisma } from '../lib/db';
+import { db } from '../lib/db';
 
 /**
  * Parse command-line arguments
@@ -77,16 +77,16 @@ async function main() {
 
     // Step 3: Show summary
     console.log('\n=== Summary ===');
-    const clubCount = await prisma.club.count();
-    const ratingCount = await prisma.eloRating.count();
-    console.log(`Total clubs in database: ${clubCount}`);
-    console.log(`Total ratings in database: ${ratingCount}`);
+    const clubCountResult = await db.query('SELECT COUNT(*) FROM clubs');
+    const ratingCountResult = await db.query('SELECT COUNT(*) FROM elo_ratings');
+    console.log(`Total clubs in database: ${clubCountResult.rows[0].count}`);
+    console.log(`Total ratings in database: ${ratingCountResult.rows[0].count}`);
 
   } catch (error) {
     console.error('\n❌ Import failed:', error);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    await db.end();
   }
 }
 

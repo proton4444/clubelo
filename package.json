@@ -14,18 +14,24 @@
     "import:clubelo": "tsx src/scripts/import-daily.ts",
     "import:clubelo:club": "tsx src/scripts/import-club.ts"
   },
-  "keywords": ["elo", "football", "ratings"],
+  "keywords": [
+    "elo",
+    "football",
+    "ratings"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.20.0",
     "csv-parse": "^5.5.6",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^20.14.0",
+    "@types/pg": "^8.15.6",
     "prisma": "^5.20.0",
     "tsx": "^4.7.1",
     "typescript": "^5.4.5"

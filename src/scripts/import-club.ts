@@ -25,7 +25,7 @@
 
 import { fetchClubHistory } from '../lib/clubelo-api';
 import { importClubHistory } from '../lib/importer';
-import { prisma } from '../lib/db';
+import { db } from '../lib/db';
 
 /**
  * Parse command-line arguments
@@ -77,25 +77,26 @@ async function main() {
 
     // Step 3: Show summary for this club
     console.log('\n=== Summary ===');
-    const clubRecord = await prisma.club.findUnique({
-      where: { apiName: club },
-      include: {
-        _count: {
-          select: { eloRatings: true },
-        },
-      },
-    });
+    const clubResult = await db.query(
+      'SELECT id, display_name, country FROM clubs WHERE api_name = $1',
+      [club]
+    );
 
-    if (clubRecord) {
-      console.log(`Club: ${clubRecord.displayName} (${clubRecord.country})`);
-      console.log(`Historical ratings imported: ${clubRecord._count.eloRatings}`);
+    if (clubResult.rows.length > 0) {
+      const clubRecord = clubResult.rows[0];
+      const ratingCountResult = await db.query(
+        'SELECT COUNT(*) FROM elo_ratings WHERE club_id = $1',
+        [clubRecord.id]
+      );
+      console.log(`Club: ${clubRecord.display_name} (${clubRecord.country})`);
+      console.log(`Historical ratings imported: ${ratingCountResult.rows[0].count}`);
     }
 
   } catch (error) {
     console.error('\n❌ Import failed:', error);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    await db.end();
   }
 }
 

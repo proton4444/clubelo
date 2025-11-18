@@ -1,25 +1,55 @@
 /**
  * Database client singleton
  *
- * Provides a single PrismaClient instance that's reused across the application.
- * This prevents too many database connections in development.
+ * Provides a PostgreSQL connection pool that's reused across the application.
+ * This prevents too many database connections.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
+import { config } from './config';
 
-// Declare a global variable to hold the Prisma client in development
-// This prevents hot-reloading from creating multiple instances
-declare global {
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
-}
-
-// Create a single PrismaClient instance
-export const prisma = global.prisma || new PrismaClient({
-  log: ['error', 'warn'],
+// Create a single connection pool instance
+export const pool = new Pool({
+  connectionString: config.databaseUrl,
+  max: 20, // Maximum number of connections in the pool
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
-// In development, store the client globally to prevent multiple instances
-if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma;
-}
+// Handle pool errors
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle PostgreSQL client', err);
+  process.exit(-1);
+});
+
+/**
+ * Database helper functions
+ */
+export const db = {
+  /**
+   * Execute a query with parameters
+   */
+  async query(text: string, params?: any[]) {
+    const start = Date.now();
+    const res = await pool.query(text, params);
+    const duration = Date.now() - start;
+    if (duration > 1000) {
+      console.log('Slow query:', { text, duration, rows: res.rowCount });
+    }
+    return res;
+  },
+
+  /**
+   * Get a client from the pool for transactions
+   */
+  async getClient() {
+    return await pool.connect();
+  },
+
+  /**
+   * Close the pool (for graceful shutdown)
+   */
+  async end() {
+    await pool.end();
+  },
+};

@@ -7,7 +7,7 @@
 
 import express, { Request, Response } from 'express';
 import { config } from './lib/config';
-import { prisma } from './lib/db';
+import { db } from './lib/db';
 
 const app = express();
 
@@ -56,57 +56,63 @@ app.get('/api/elo/rankings', async (req: Request, res: Response) => {
     const limit = limitParam ? parseInt(limitParam as string, 10) : 100;
 
     // Determine which date to use
-    let targetDate: Date;
+    let targetDate: string;
 
     if (dateParam) {
-      // Use the provided date
-      targetDate = new Date(dateParam as string);
-      if (isNaN(targetDate.getTime())) {
+      // Validate the provided date
+      const parsedDate = new Date(dateParam as string);
+      if (isNaN(parsedDate.getTime())) {
         return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
       }
+      targetDate = parsedDate.toISOString().split('T')[0];
     } else {
       // Find the latest date we have data for
-      const latest = await prisma.eloRating.findFirst({
-        orderBy: { date: 'desc' },
-        select: { date: true },
-      });
+      const latestResult = await db.query(
+        'SELECT MAX(date) as max_date FROM elo_ratings'
+      );
 
-      if (!latest) {
+      if (!latestResult.rows[0].max_date) {
         return res.status(404).json({ error: 'No rating data available' });
       }
 
-      targetDate = latest.date;
+      targetDate = new Date(latestResult.rows[0].max_date).toISOString().split('T')[0];
     }
 
     // Build the query
-    const whereClause: any = { date: targetDate };
+    let query = `
+      SELECT
+        c.id, c.api_name, c.display_name, c.country, c.level,
+        e.rank, e.elo
+      FROM elo_ratings e
+      JOIN clubs c ON e.club_id = c.id
+      WHERE e.date = $1
+    `;
+    const params: any[] = [targetDate];
+
     if (country) {
-      whereClause.country = country as string;
+      query += ' AND e.country = $2';
+      params.push(country);
     }
 
+    query += ' ORDER BY e.elo DESC LIMIT $' + (params.length + 1);
+    params.push(limit);
+
     // Fetch ratings for this date
-    const ratings = await prisma.eloRating.findMany({
-      where: whereClause,
-      include: {
-        club: true,
-      },
-      orderBy: { elo: 'desc' },
-      take: limit,
-    });
+    const result = await db.query(query, params);
 
     // Transform to response format
-    const clubs = ratings.map(rating => ({
-      id: rating.club.id,
-      apiName: rating.club.apiName,
-      displayName: rating.club.displayName,
-      country: rating.club.country,
-      level: rating.club.level,
-      rank: rating.rank,
-      elo: rating.elo,
+    const clubs = result.rows.map(row => ({
+      id: row.id,
+      apiName: row.api_name,
+      displayName: row.display_name,
+      country: row.country,
+      level: row.level,
+      rank: row.rank,
+      elo: parseFloat(row.elo),
     }));
 
     res.json({
-      date: targetDate.toISOString().split('T')[0],
+      date: targetDate,
       country: country || null,
       clubs,
     });
@@ -156,57 +162,64 @@ app.get('/api/elo/clubs/:id/history', async (req: Request, res: Response) => {
 
     // Find the club by ID or API name
     const clubId = parseInt(id, 10);
-    const club = await prisma.club.findFirst({
-      where: isNaN(clubId)
-        ? { apiName: id }
-        : { id: clubId },
-    });
+    let clubQuery: string;
+    let clubParams: any[];
 
-    if (!club) {
+    if (isNaN(clubId)) {
+      // Search by API name
+      clubQuery = 'SELECT * FROM clubs WHERE api_name = $1';
+      clubParams = [id];
+    } else {
+      // Search by ID
+      clubQuery = 'SELECT * FROM clubs WHERE id = $1';
+      clubParams = [clubId];
+    }
+
+    const clubResult = await db.query(clubQuery, clubParams);
+
+    if (clubResult.rows.length === 0) {
       return res.status(404).json({ error: 'Club not found' });
     }
 
-    // Build date range filter
-    const dateFilter: any = {};
+    const club = clubResult.rows[0];
+
+    // Build history query
+    let historyQuery = 'SELECT date, elo, rank FROM elo_ratings WHERE club_id = $1';
+    const historyParams: any[] = [club.id];
+
     if (fromParam) {
       const fromDate = new Date(fromParam as string);
       if (!isNaN(fromDate.getTime())) {
-        dateFilter.gte = fromDate;
+        historyQuery += ' AND date >= $' + (historyParams.length + 1);
+        historyParams.push(fromDate.toISOString().split('T')[0]);
       }
     }
+
     if (toParam) {
       const toDate = new Date(toParam as string);
       if (!isNaN(toDate.getTime())) {
-        dateFilter.lte = toDate;
+        historyQuery += ' AND date <= $' + (historyParams.length + 1);
+        historyParams.push(toDate.toISOString().split('T')[0]);
       }
     }
 
+    historyQuery += ' ORDER BY date ASC';
+
     // Fetch rating history
-    const ratings = await prisma.eloRating.findMany({
-      where: {
-        clubId: club.id,
-        ...(Object.keys(dateFilter).length > 0 ? { date: dateFilter } : {}),
-      },
-      orderBy: { date: 'asc' },
-      select: {
-        date: true,
-        elo: true,
-        rank: true,
-      },
-    });
+    const historyResult = await db.query(historyQuery, historyParams);
 
     // Transform to response format
-    const history = ratings.map(rating => ({
-      date: rating.date.toISOString().split('T')[0],
-      elo: rating.elo,
-      rank: rating.rank,
+    const history = historyResult.rows.map(row => ({
+      date: new Date(row.date).toISOString().split('T')[0],
+      elo: parseFloat(row.elo),
+      rank: row.rank,
     }));
 
     res.json({
       club: {
         id: club.id,
-        apiName: club.apiName,
-        displayName: club.displayName,
+        apiName: club.api_name,
+        displayName: club.display_name,
         country: club.country,
         level: club.level,
       },
@@ -252,34 +265,34 @@ app.get('/api/elo/clubs', async (req: Request, res: Response) => {
     const { q, country, limit: limitParam } = req.query;
     const limit = limitParam ? parseInt(limitParam as string, 10) : 100;
 
-    // Build where clause
-    const whereClause: any = {};
+    // Build query
+    let query = 'SELECT id, api_name, display_name, country, level FROM clubs WHERE 1=1';
+    const params: any[] = [];
 
     if (q) {
       // Search in display name (case-insensitive)
-      whereClause.displayName = {
-        contains: q as string,
-        mode: 'insensitive',
-      };
+      query += ' AND LOWER(display_name) LIKE LOWER($' + (params.length + 1) + ')';
+      params.push(`%${q}%`);
     }
 
     if (country) {
-      whereClause.country = country as string;
+      query += ' AND country = $' + (params.length + 1);
+      params.push(country);
     }
 
+    query += ' ORDER BY display_name ASC LIMIT $' + (params.length + 1);
+    params.push(limit);
+
     // Fetch clubs
-    const clubs = await prisma.club.findMany({
-      where: whereClause,
-      orderBy: { displayName: 'asc' },
-      take: limit,
-      select: {
-        id: true,
-        apiName: true,
-        displayName: true,
-        country: true,
-        level: true,
-      },
-    });
+    const result = await db.query(query, params);
+
+    const clubs = result.rows.map(row => ({
+      id: row.id,
+      apiName: row.api_name,
+      displayName: row.display_name,
+      country: row.country,
+      level: row.level,
+    }));
 
     res.json({ clubs });
 

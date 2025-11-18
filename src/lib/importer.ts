@@ -5,7 +5,7 @@
  * Upserts clubs and their Elo ratings with proper normalization.
  */
 
-import { prisma } from './db';
+import { db } from './db';
 import { ClubEloRow } from './clubelo-api';
 
 /**
@@ -56,46 +56,33 @@ async function upsertClubRating(row: ClubEloRow, date: Date): Promise<void> {
 
   try {
     // Upsert club (create if doesn't exist, update if it does)
-    const club = await prisma.club.upsert({
-      where: { apiName },
-      create: {
-        apiName,
-        displayName,
-        country,
-        level,
-      },
-      update: {
-        // Update fields that might have changed
-        displayName,
-        country,
-        level,
-      },
-    });
+    const clubResult = await db.query(
+      `INSERT INTO clubs (api_name, display_name, country, level, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW())
+       ON CONFLICT (api_name)
+       DO UPDATE SET
+         display_name = EXCLUDED.display_name,
+         country = EXCLUDED.country,
+         level = EXCLUDED.level,
+         updated_at = NOW()
+       RETURNING id`,
+      [apiName, displayName, country, level]
+    );
+
+    const clubId = clubResult.rows[0].id;
 
     // Upsert Elo rating for this date
-    await prisma.eloRating.upsert({
-      where: {
-        clubId_date: {
-          clubId: club.id,
-          date,
-        },
-      },
-      create: {
-        clubId: club.id,
-        date,
-        rank,
-        country,
-        level,
-        elo,
-        source: 'clubelo',
-      },
-      update: {
-        rank,
-        country,
-        level,
-        elo,
-      },
-    });
+    await db.query(
+      `INSERT INTO elo_ratings (club_id, date, rank, country, level, elo, source)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (club_id, date)
+       DO UPDATE SET
+         rank = EXCLUDED.rank,
+         country = EXCLUDED.country,
+         level = EXCLUDED.level,
+         elo = EXCLUDED.elo`,
+      [clubId, date, rank, country, level, elo, 'clubelo']
+    );
 
   } catch (error) {
     console.error(`Error upserting ${displayName}:`, error);
