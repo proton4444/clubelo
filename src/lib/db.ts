@@ -11,9 +11,10 @@ import { config } from './config';
 // Create a single connection pool instance
 export const pool = new Pool({
   connectionString: config.databaseUrl,
-  max: 20, // Maximum number of connections in the pool
+  max: process.env.VERCEL ? 1 : 20, // Use single connection per lambda on Vercel
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
+  ssl: process.env.VERCEL ? { rejectUnauthorized: false } : undefined, // Enable SSL on Vercel
 });
 
 // Handle pool errors

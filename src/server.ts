@@ -11,6 +11,9 @@ import swaggerUi from 'swagger-ui-express';
 import { config } from './lib/config';
 import { db } from './lib/db';
 import * as openApiSpec from '../openapi.json';
+import { fetchDailySnapshot } from './lib/clubelo-api';
+import { importDailySnapshot } from './lib/importer';
+import { importFixtures } from './lib/fixtures-importer';
 
 const app = express();
 
@@ -535,6 +538,58 @@ app.get('/api/elo/fixtures', async (req: Request, res: Response) => {
   }
 });
 
+// Cron Job Endpoints (Protected)
+// These are called by Vercel Cron
+const validateCronSecret = (req: Request, res: Response, next: Function) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+};
+
+app.post('/api/cron/import-daily', validateCronSecret, async (req: Request, res: Response) => {
+  try {
+    const dateStr = req.query.date as string;
+    let date: string;
+
+    if (dateStr) {
+      date = dateStr;
+    } else {
+      // Default to yesterday
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      date = yesterday.toISOString().split('T')[0];
+    }
+
+    console.log(`[Cron] Starting daily import for ${date}...`);
+    const rows = await fetchDailySnapshot(date);
+
+    if (rows.length > 0) {
+      await importDailySnapshot(rows, new Date(date));
+      res.json({ success: true, count: rows.length, date });
+    } else {
+      res.json({ success: true, count: 0, message: 'No data found' });
+    }
+  } catch (error) {
+    console.error('[Cron] Daily import failed:', error);
+    res.status(500).json({ error: 'Import failed' });
+  }
+});
+
+app.post('/api/cron/import-fixtures', validateCronSecret, async (req: Request, res: Response) => {
+  try {
+    const date = req.query.date as string; // Optional
+    console.log(`[Cron] Starting fixtures import${date ? ` for ${date}` : ''}...`);
+
+    const result = await importFixtures(date);
+    res.json({ ok: true, ...result });
+  } catch (error) {
+    console.error('[Cron] Fixtures import failed:', error);
+    res.status(500).json({ error: 'Import failed' });
+  }
+});
+
 // Serve index.html for root path
 app.get('/', (req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
@@ -548,8 +603,8 @@ app.use('/api/*', (req: Request, res: Response) => {
 // Export the app for testing
 export default app;
 
-// Only start the server if not in test mode
-if (process.env.NODE_ENV !== 'test') {
+// Only start the server if not in test mode and not on Vercel
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   const PORT = config.port;
   app.listen(PORT, () => {
     console.log(`\n🚀 ClubElo API server running on http://localhost:${PORT}`);
