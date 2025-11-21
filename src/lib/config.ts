@@ -22,7 +22,7 @@ export const config = {
   port: parseInt(process.env.PORT || '3000', 10),
 
   // HTTP request timeout (in milliseconds)
-  httpTimeout: 30000,
+  httpTimeout: 120000,
 
   // Maximum retries for HTTP requests
   httpMaxRetries: 3,
