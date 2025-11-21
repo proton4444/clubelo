@@ -1,145 +1,237 @@
-/**
- * Rankings page logic
- *
- * This script handles:
- * - Loading and displaying club rankings
- * - Filter controls (date, country, limit)
- * - Clicking a club row to navigate to its detail page
- */
+// Enhanced Rankings Page JavaScript
 
-// DOM elements
-const dateInput = document.getElementById('date-input');
-const countrySelect = document.getElementById('country-select');
-const limitSelect = document.getElementById('limit-select');
-const applyButton = document.getElementById('apply-filters');
-const loadingEl = document.getElementById('loading');
-const errorEl = document.getElementById('error');
-const tableContainer = document.getElementById('table-container');
-const rankingsBody = document.getElementById('rankings-body');
-const dateInfo = document.getElementById('date-info');
+let currentPage = 1;
+let currentFilters = {};
+let totalPages = 1;
 
-// Current state
-let currentData = null;
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+  initializeDatePicker();
+  setupEventListeners();
+  loadRankings();
+});
 
-/**
- * Initialize the page
- * Sets default date to today and loads initial rankings
- */
-function init() {
-  // Set date input to today by default
+// Initialize date picker with today's date
+function initializeDatePicker() {
+  const dateInput = document.getElementById('date-input');
   const today = new Date().toISOString().split('T')[0];
   dateInput.value = today;
+  dateInput.max = today;
+}
 
-  // Load initial rankings
-  loadRankings();
+// Setup all event listeners
+function setupEventListeners() {
+  document.getElementById('apply-filters').addEventListener('click', () => {
+    currentPage = 1;
+    loadRankings();
+  });
 
-  // Set up event listeners
-  applyButton.addEventListener('click', loadRankings);
+  document.getElementById('reset-filters').addEventListener('click', () => {
+    document.getElementById('date-input').value = new Date().toISOString().split('T')[0];
+    document.getElementById('country-select').value = 'ALL';
+    document.getElementById('level-select').value = 'ALL';
+    document.getElementById('limit-select').value = '100';
+    document.getElementById('search-input').value = '';
+    currentPage = 1;
+    loadRankings();
+  });
 
-  // Allow pressing Enter in inputs to apply filters
-  dateInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') loadRankings();
+  document.getElementById('prev-page').addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      loadRankings();
+    }
+  });
+
+  document.getElementById('next-page').addEventListener('click', () => {
+    if (currentPage < totalPages) {
+      currentPage++;
+      loadRankings();
+    }
+  });
+
+  // Search on Enter key
+  document.getElementById('search-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      currentPage = 1;
+      loadRankings();
+    }
   });
 }
 
-/**
- * Load rankings from the API based on current filter values
- */
+// Load rankings from API
 async function loadRankings() {
+  const loadingEl = document.getElementById('loading');
+  const errorEl = document.getElementById('error');
+  const tableContainer = document.getElementById('rankings-card');
+
+  // Show loading state
+  loadingEl.style.display = 'block';
+  errorEl.style.display = 'none';
+  tableContainer.style.opacity = '0.5';
+
   try {
-    // Show loading state
-    showLoading(true);
-    hideError();
-
     // Get filter values
-    const date = dateInput.value || undefined;
-    const country = countrySelect.value;
-    const limit = parseInt(limitSelect.value, 10);
+    const date = document.getElementById('date-input').value;
+    const country = document.getElementById('country-select').value;
+    const level = document.getElementById('level-select').value;
+    const pageSize = parseInt(document.getElementById('limit-select').value);
+    const searchQuery = document.getElementById('search-input').value.trim();
 
-    // Fetch rankings from API
-    const data = await fetchRankings({ date, country, limit });
-    currentData = data;
+    // Build query params
+    const params = new URLSearchParams();
+    if (date) params.append('date', date);
+    if (country !== 'ALL') params.append('country', country);
+    if (level !== 'ALL') params.append('level', level);
+    params.append('page', currentPage);
+    params.append('pageSize', pageSize);
 
-    // Display the rankings
-    displayRankings(data);
+    // Fetch rankings
+    const response = await fetch(`/api/elo/rankings?${params}`);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch rankings: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Filter by search query if provided
+    let clubs = data.clubs || [];
+    if (searchQuery) {
+      clubs = clubs.filter(club =>
+        club.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Update pagination
+    if (data.pagination) {
+      totalPages = data.pagination.totalPages;
+      updatePagination(data.pagination);
+    }
+
+    // Update stats
+    updateStats(clubs, data);
+
+    // Render table
+    renderTable(clubs);
 
     // Update date info
-    dateInfo.textContent = `Showing rankings for ${data.date} ${
-      data.country ? `(${data.country} only)` : '(all countries)'
-    }`;
+    updateDateInfo(data.date);
+
+    // Hide loading
+    loadingEl.style.display = 'none';
+    tableContainer.style.opacity = '1';
 
   } catch (error) {
     console.error('Error loading rankings:', error);
-    showError(`Failed to load rankings: ${error.message}`);
-  } finally {
-    showLoading(false);
+    loadingEl.style.display = 'none';
+    errorEl.textContent = `Failed to load rankings: ${error.message}`;
+    errorEl.style.display = 'block';
+    tableContainer.style.opacity = '1';
   }
 }
 
-/**
- * Display rankings in the table
- *
- * @param {Object} data - Response from fetchRankings()
- */
-function displayRankings(data) {
-  // Clear existing rows
-  rankingsBody.innerHTML = '';
+// Update stats cards
+function updateStats(clubs, data) {
+  const totalClubs = data.pagination?.total || clubs.length;
+  const countries = new Set(clubs.map(c => c.country)).size;
+  const avgElo = clubs.length > 0
+    ? Math.round(clubs.reduce((sum, c) => sum + c.elo, 0) / clubs.length)
+    : 0;
+  const topElo = clubs.length > 0
+    ? Math.round(Math.max(...clubs.map(c => c.elo)))
+    : 0;
 
-  if (!data.clubs || data.clubs.length === 0) {
-    rankingsBody.innerHTML = `
+  document.getElementById('total-clubs').textContent = totalClubs.toLocaleString();
+  document.getElementById('total-countries').textContent = countries;
+  document.getElementById('avg-elo').textContent = avgElo.toLocaleString();
+  document.getElementById('top-elo').textContent = topElo.toLocaleString();
+}
+
+// Render rankings table
+function renderTable(clubs) {
+  const tbody = document.getElementById('rankings-body');
+
+  if (clubs.length === 0) {
+    tbody.innerHTML = `
       <tr>
-        <td colspan="5" style="text-align: center; padding: 40px; color: #888;">
-          No clubs found for the selected filters
+        <td colspan="6" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+          <div style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">No clubs found</div>
+          <div>Try adjusting your filters or search query</div>
         </td>
       </tr>
     `;
     return;
   }
 
-  // Create a row for each club
-  data.clubs.forEach((club) => {
-    const row = document.createElement('tr');
+  tbody.innerHTML = clubs.map(club => `
+    <tr>
+      <td class="col-rank">
+        <div class="rank-badge ${getRankClass(club.rank)}">${club.rank}</div>
+      </td>
+      <td class="col-club">
+        <div class="club-name">${escapeHtml(club.displayName)}</div>
+      </td>
+      <td class="col-country">
+        <span class="country-badge">${escapeHtml(club.country)}</span>
+      </td>
+      <td class="col-level" style="text-align: center;">
+        ${club.level}
+      </td>
+      <td class="col-elo">
+        ${Math.round(club.elo).toLocaleString()}
+      </td>
+      <td class="col-actions">
+        <button class="btn-view" onclick="viewClubHistory(${club.id})">
+          View History
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
 
-    // Make row clickable - navigate to club detail page
-    row.addEventListener('click', () => {
-      window.location.href = `/club.html?id=${club.id}`;
+// Get rank badge class
+function getRankClass(rank) {
+  if (rank === 1) return 'rank-1';
+  if (rank === 2) return 'rank-2';
+  if (rank === 3) return 'rank-3';
+  return 'rank-other';
+}
+
+// Update pagination controls
+function updatePagination(pagination) {
+  const prevBtn = document.getElementById('prev-page');
+  const nextBtn = document.getElementById('next-page');
+  const pageInfo = document.getElementById('page-info');
+
+  prevBtn.disabled = pagination.page === 1;
+  nextBtn.disabled = pagination.page >= pagination.totalPages;
+
+  pageInfo.textContent = `Page ${pagination.page} of ${pagination.totalPages}`;
+}
+
+// Update date info badge
+function updateDateInfo(date) {
+  const dateInfo = document.getElementById('date-info');
+  if (date) {
+    const formattedDate = new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
-
-    row.innerHTML = `
-      <td class="rank">${club.rank}</td>
-      <td>${club.displayName}</td>
-      <td class="country">${club.country}</td>
-      <td class="level">${club.level}</td>
-      <td class="elo">${club.elo.toFixed(1)}</td>
-    `;
-
-    rankingsBody.appendChild(row);
-  });
+    dateInfo.textContent = `📅 ${formattedDate}`;
+  }
 }
 
-/**
- * Show or hide the loading indicator
- */
-function showLoading(show) {
-  loadingEl.style.display = show ? 'block' : 'none';
-  tableContainer.style.display = show ? 'none' : 'block';
+// View club history (navigate to club page)
+function viewClubHistory(clubId) {
+  window.location.href = `/club.html?id=${clubId}`;
 }
 
-/**
- * Show an error message
- */
-function showError(message) {
-  errorEl.textContent = message;
-  errorEl.style.display = 'block';
-  tableContainer.style.display = 'none';
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
-
-/**
- * Hide the error message
- */
-function hideError() {
-  errorEl.style.display = 'none';
-}
-
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', init);
