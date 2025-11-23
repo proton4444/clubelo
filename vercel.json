@@ -1,0 +1,19 @@
+{
+    "version": 2,
+    "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "/api/index.ts"
+        }
+    ],
+    "crons": [
+        {
+            "path": "/api/cron/import-daily",
+            "schedule": "0 6 * * *"
+        },
+        {
+            "path": "/api/cron/import-fixtures",
+            "schedule": "0 7 * * *"
+        }
+    ]
+}

@@ -1,0 +1,686 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ClubElo Data Layer API",
+    "version": "1.0.0",
+    "description": "Fast-path data layer for ClubElo football ratings. Provides local mirror of ClubElo data with REST API for frontend consumption.",
+    "contact": {
+      "name": "API Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Rankings",
+      "description": "Club Elo rankings endpoints"
+    },
+    {
+      "name": "Clubs",
+      "description": "Club information and history"
+    },
+    {
+      "name": "Fixtures",
+      "description": "Match fixtures with predictions"
+    },
+    {
+      "name": "Health",
+      "description": "Service health check"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check endpoint",
+        "description": "Returns service health status and current timestamp",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2025-11-18T12:00:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/elo/rankings": {
+      "get": {
+        "tags": ["Rankings"],
+        "summary": "Get club Elo rankings",
+        "description": "Returns club rankings for a specific date with optional filters and pagination",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Date for rankings (YYYY-MM-DD). Defaults to latest available date.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-11-18"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "description": "Filter by country code (e.g., ENG, ESP)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "ENG"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "description": "Filter by league level (1 = top tier)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "minElo",
+            "in": "query",
+            "description": "Minimum Elo rating filter",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 1900
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number for pagination (starts at 1)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of results per page (1-1000)",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100,
+              "example": 20
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Legacy parameter. Use pageSize instead.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with rankings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                      "format": "date",
+                      "example": "2025-11-18"
+                    },
+                    "country": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "ENG"
+                    },
+                    "level": {
+                      "type": "integer",
+                      "nullable": true,
+                      "example": 1
+                    },
+                    "minElo": {
+                      "type": "number",
+                      "nullable": true,
+                      "example": 1900
+                    },
+                    "clubs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ClubRanking"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No rating data available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/elo/clubs/{id}/history": {
+      "get": {
+        "tags": ["Clubs"],
+        "summary": "Get club Elo history",
+        "description": "Returns historical Elo ratings for a specific club",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Club ID or API name (e.g., 'ManCity')",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "ManCity"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Start date for history (YYYY-MM-DD)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-01-01"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "End date for history (YYYY-MM-DD)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-11-18"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with club history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "club": {
+                      "$ref": "#/components/schemas/Club"
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EloHistory"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Club not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/elo/clubs": {
+      "get": {
+        "tags": ["Clubs"],
+        "summary": "Search and list clubs",
+        "description": "Returns a list of clubs with optional search and filters",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search query for club name (case-insensitive)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "Manchester"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "description": "Filter by country code",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "ENG"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 100,
+              "example": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with clubs list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "clubs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Club"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/elo/fixtures": {
+      "get": {
+        "tags": ["Fixtures"],
+        "summary": "Get match fixtures with predictions",
+        "description": "Returns upcoming or recent match fixtures with Elo-based win/draw/loss probabilities",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Specific date for fixtures (YYYY-MM-DD)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-11-20"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Start date for fixtures range (YYYY-MM-DD)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-11-20"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "End date for fixtures range (YYYY-MM-DD)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2025-11-30"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "description": "Filter by country code",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "ENG"
+            }
+          },
+          {
+            "name": "competition",
+            "in": "query",
+            "description": "Filter by competition name (partial match, case-insensitive)",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "Premier League"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of results",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 100,
+              "example": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with fixtures",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "fixtures": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Fixture"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ClubRanking": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "apiName": {
+            "type": "string",
+            "example": "ManCity"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Manchester City"
+          },
+          "country": {
+            "type": "string",
+            "example": "ENG"
+          },
+          "level": {
+            "type": "integer",
+            "example": 1
+          },
+          "rank": {
+            "type": "integer",
+            "example": 1
+          },
+          "elo": {
+            "type": "number",
+            "format": "float",
+            "example": 2050.5
+          }
+        }
+      },
+      "Club": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "apiName": {
+            "type": "string",
+            "example": "ManCity"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Manchester City"
+          },
+          "country": {
+            "type": "string",
+            "example": "ENG"
+          },
+          "level": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "EloHistory": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2025-11-18"
+          },
+          "elo": {
+            "type": "number",
+            "format": "float",
+            "example": 2050.5
+          },
+          "rank": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "Fixture": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "matchDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2025-11-20"
+          },
+          "homeTeam": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              },
+              "name": {
+                "type": "string",
+                "example": "Manchester City"
+              },
+              "country": {
+                "type": "string",
+                "example": "ENG"
+              },
+              "elo": {
+                "type": "number",
+                "format": "float",
+                "example": 2050.5
+              }
+            }
+          },
+          "awayTeam": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 2
+              },
+              "name": {
+                "type": "string",
+                "example": "Liverpool"
+              },
+              "country": {
+                "type": "string",
+                "example": "ENG"
+              },
+              "elo": {
+                "type": "number",
+                "format": "float",
+                "example": 2010.3
+              }
+            }
+          },
+          "country": {
+            "type": "string",
+            "example": "ENG"
+          },
+          "competition": {
+            "type": "string",
+            "example": "Premier League"
+          },
+          "predictions": {
+            "type": "object",
+            "properties": {
+              "homeWin": {
+                "type": "number",
+                "format": "float",
+                "nullable": true,
+                "example": 0.55
+              },
+              "draw": {
+                "type": "number",
+                "format": "float",
+                "nullable": true,
+                "example": 0.25
+              },
+              "awayWin": {
+                "type": "number",
+                "format": "float",
+                "nullable": true,
+                "example": 0.20
+              }
+            }
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "integer",
+            "example": 20
+          },
+          "total": {
+            "type": "integer",
+            "example": 100
+          },
+          "totalPages": {
+            "type": "integer",
+            "example": 5
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Invalid date format. Use YYYY-MM-DD"
+          }
+        }
+      }
+    }
+  }
+}

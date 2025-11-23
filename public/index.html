@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClubElo Pro - Advanced Football Club Rankings</title>
+  <meta name="description" content="The most advanced football club Elo rating system with real-time data, visualizations, and insights.">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Hero Section -->
+  <div class="hero">
+    <div class="hero-content">
+      <h1 class="hero-title">ClubElo <span class="gradient-text">Pro</span></h1>
+      <p class="hero-subtitle">Advanced Football Club Elo Ratings & Analytics</p>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <div class="container">
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-value" id="total-clubs">-</div>
+        <div class="stat-label">Total Clubs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🌍</div>
+        <div class="stat-value" id="total-countries">-</div>
+        <div class="stat-label">Countries</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-value" id="avg-elo">-</div>
+        <div class="stat-label">Avg Elo</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-value" id="top-elo">-</div>
+        <div class="stat-label">Top Elo</div>
+      </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-card">
+      <h2 class="section-title">Filters</h2>
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label for="date-input">Date</label>
+          <input type="date" id="date-input" class="filter-input">
+        </div>
+        
+        <div class="filter-group">
+          <label for="country-select">Country</label>
+          <select id="country-select" class="filter-select">
+            <option value="ALL">All Countries</option>
+            <option value="ENG">🏴󠁧󠁢󠁥󠁮󠁧󠁿 England</option>
+            <option value="ESP">🇪🇸 Spain</option>
+            <option value="GER">🇩🇪 Germany</option>
+            <option value="ITA">🇮🇹 Italy</option>
+            <option value="FRA">🇫🇷 France</option>
+            <option value="BRA">🇧🇷 Brazil</option>
+            <option value="ARG">🇦🇷 Argentina</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="level-select">Division</label>
+          <select id="level-select" class="filter-select">
+            <option value="ALL">All Levels</option>
+            <option value="1">1st Division</option>
+            <option value="2">2nd Division</option>
+            <option value="3">3rd Division</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="limit-select">Show Top</label>
+          <select id="limit-select" class="filter-select">
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="200">200</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="search-input">Search Club</label>
+          <input type="text" id="search-input" class="filter-input" placeholder="Search by name...">
+        </div>
+
+        <div class="filter-group filter-actions">
+          <button id="apply-filters" class="btn-primary">Apply Filters</button>
+          <button id="reset-filters" class="btn-secondary">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" class="loading-state" style="display: none;">
+      <div class="loading-spinner"></div>
+      <p>Loading rankings...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="error-state" style="display: none;"></div>
+
+    <!-- Rankings Table -->
+    <div class="rankings-card" id="rankings-card">
+      <div class="rankings-header">
+        <h2 class="section-title">Rankings</h2>
+        <div id="date-info" class="date-badge"></div>
+      </div>
+      
+      <div class="table-wrapper">
+        <table class="rankings-table" id="rankings-table">
+          <thead>
+            <tr>
+              <th class="col-rank">Rank</th>
+              <th class="col-club">Club</th>
+              <th class="col-country">Country</th>
+              <th class="col-level">Div</th>
+              <th class="col-elo">Elo Rating</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rankings-body">
+            <!-- Populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination">
+        <button id="prev-page" class="btn-pagination" disabled>← Previous</button>
+        <span id="page-info" class="page-info">Page 1</span>
+        <button id="next-page" class="btn-pagination">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>Data powered by ClubElo API | Built with ❤️ for football analytics</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/rankings.js"></script>
+</body>
+</html>
