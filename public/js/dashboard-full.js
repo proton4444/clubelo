@@ -158,7 +158,7 @@ function renderCountries() {
     <div class="sidebar-item cursor-pointer hover:bg-purple-900/30 transition" onclick="navigateToCountry('${country.name}')">
       <div class="flex-1">
         <div class="flex items-center gap-2 mb-1">
-          <span class="w-4 h-4 bg-purple-600 rounded-full"></span>
+          <span class="text-lg">${getCountryFlag(country.name)}</span>
           <span class="text-sm text-white">${country.name}</span>
         </div>
         <div class="progress-bar">
