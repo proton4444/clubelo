@@ -17,14 +17,22 @@ const clubLogos = {
 
 // Initialize
 document.addEventListener("DOMContentLoaded", async () => {
+  const params = new URLSearchParams(window.location.search);
+  const countryCode = params.get("country");
+
   await loadAllData();
   renderCountries();
-  renderEuroTop25();
-  renderTodayTable();
-  renderYesterdayTable();
-  renderCoachesTable();
-  renderRecentChart();
-  renderErasChart();
+
+  if (countryCode) {
+    showCountryPage(countryCode);
+  } else {
+    renderEuroTop25();
+    renderTodayTable();
+    renderYesterdayTable();
+    renderCoachesTable();
+    renderRecentChart();
+    renderErasChart();
+  }
 });
 
 // Load all data from API
@@ -380,4 +388,168 @@ function generateEraData() {
     data.push(Math.round(value));
   }
   return data;
+}
+
+// Country Page Functions
+function showCountryPage(countryCode) {
+  const mainContent = document.querySelector("main > div");
+  mainContent.innerHTML = `
+    <div class="p-6">
+      <button onclick="window.location.href='/'" class="flex items-center gap-2 px-4 py-2 rounded mb-6 bg-purple-600 hover:bg-purple-700 transition">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Back to Dashboard
+      </button>
+
+      <h1 class="text-3xl font-bold text-white mb-6">${countryCode} - Clubs Ranking</h1>
+
+      <div class="grid grid-cols-4 gap-4 mb-6">
+        <div class="card">
+          <div class="text-gray-400 text-sm mb-1">Total Clubs</div>
+          <div id="total-clubs" class="text-3xl font-bold text-white">0</div>
+        </div>
+        <div class="card">
+          <div class="text-gray-400 text-sm mb-1">Avg Elo</div>
+          <div id="avg-elo" class="text-3xl font-bold text-purple-400">0</div>
+        </div>
+        <div class="card">
+          <div class="text-gray-400 text-sm mb-1">Top Club Elo</div>
+          <div id="top-elo" class="text-3xl font-bold text-green-400">0</div>
+        </div>
+        <div class="card">
+          <div class="text-gray-400 text-sm mb-1">Avg Rank</div>
+          <div id="avg-rank" class="text-3xl font-bold text-blue-400">0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="text-xl font-bold text-white mb-4">Clubs Ranked by Elo</h2>
+        <div id="clubs-list" class="space-y-2">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="text-xl font-bold text-white mb-4">Elo Distribution</h2>
+        <div style="position: relative; height: 300px;">
+          <canvas id="distribution-chart"></canvas>
+        </div>
+      </div>
+    </div>
+  `;
+
+  renderCountryData(countryCode);
+}
+
+function renderCountryData(countryCode) {
+  const countryClubs = clubsData.filter((club) => club.country === countryCode);
+  countryClubs.sort((a, b) => b.elo - a.elo);
+
+  // Update stats
+  const totalClubs = countryClubs.length;
+  const avgElo =
+    totalClubs > 0
+      ? Math.round(
+          countryClubs.reduce((sum, club) => sum + club.elo, 0) / totalClubs,
+        )
+      : 0;
+  const topElo = totalClubs > 0 ? Math.round(countryClubs[0].elo) : 0;
+  const avgRank =
+    totalClubs > 0
+      ? Math.round(
+          countryClubs.reduce((sum, club) => sum + club.rank, 0) / totalClubs,
+        )
+      : 0;
+
+  document.getElementById("total-clubs").textContent = totalClubs;
+  document.getElementById("avg-elo").textContent = avgElo;
+  document.getElementById("top-elo").textContent = topElo;
+  document.getElementById("avg-rank").textContent = avgRank;
+
+  // Render clubs list
+  const list = document.getElementById("clubs-list");
+  if (countryClubs.length === 0) {
+    list.innerHTML =
+      '<div class="text-gray-400 text-center py-8">No clubs found for this country</div>';
+    return;
+  }
+
+  list.innerHTML = countryClubs
+    .map(
+      (club, index) => `
+    <div class="club-row flex items-center justify-between p-3 rounded hover:bg-gray-800 transition">
+      <div class="flex items-center gap-3 flex-1">
+        <span class="text-gray-400 font-semibold w-8">${index + 1}</span>
+        <img src="${clubLogos[club.displayName] || ""}" class="w-6 h-6 rounded-full bg-gray-700" onerror="this.style.display='none'"/>
+        <div class="flex-1">
+          <div class="text-white font-medium">${club.displayName || club.apiName}</div>
+          <div class="text-gray-500 text-xs">Level ${club.level}</div>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="text-white font-bold text-lg">${Math.round(club.elo)}</div>
+        <div class="text-gray-400 text-xs">Rank #${club.rank}</div>
+      </div>
+    </div>
+  `,
+    )
+    .join("");
+
+  // Render distribution chart
+  renderCountryDistributionChart(countryClubs);
+}
+
+function renderCountryDistributionChart(countryClubs) {
+  const ctx = document.getElementById("distribution-chart");
+  if (!ctx) return;
+
+  const chartCtx = ctx.getContext("2d");
+
+  // Create histogram data (Elo ranges)
+  const ranges = [];
+  const counts = [];
+
+  for (let i = 1400; i <= 2100; i += 100) {
+    const count = countryClubs.filter(
+      (c) => c.elo >= i && c.elo < i + 100,
+    ).length;
+    if (count > 0 || ranges.length === 0) {
+      ranges.push(`${i}-${i + 100}`);
+      counts.push(count);
+    }
+  }
+
+  new Chart(chartCtx, {
+    type: "bar",
+    data: {
+      labels: ranges,
+      datasets: [
+        {
+          label: "Number of Clubs",
+          data: counts,
+          backgroundColor: "#8b5cf6",
+          borderColor: "#6366f1",
+          borderWidth: 2,
+          borderRadius: 4,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, labels: { color: "#9ca3af" } },
+      },
+      scales: {
+        x: {
+          grid: { color: "#2a2d3a" },
+          ticks: { color: "#6b7280" },
+        },
+        y: {
+          grid: { color: "#2a2d3a" },
+          ticks: { color: "#6b7280" },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
 }
