@@ -1,12 +1,12 @@
 <!doctype html>
-<html class="light" lang="en">
+<html lang="en">
     <head>
         <meta charset="utf-8" />
         <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-        <title>FootballRatings - Minimalist Data Hub</title>
-        <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+        <title>FootballRatings - Command Center</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
         <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap"
             rel="stylesheet"
         />
         <link
@@ -16,33 +16,30 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
         <script>
             tailwind.config = {
-                darkMode: "class",
                 theme: {
                     extend: {
                         colors: {
-                            primary: "#a4907c",
-                            "background-light": "#e5ddc8",
-                            "background-dark": "#1f2937",
-                            "card-light": "#c8c0b4",
-                            "card-dark": "#374151",
-                            "text-primary-light": "#8d7b68",
-                            "text-primary-dark": "#d1d5db",
-                            "text-secondary-light": "#615448",
-                            "text-secondary-dark": "#9ca3af",
-                            "border-light": "#b9b0a3",
-                            "border-dark": "#4b5563",
+                            "primary-text": "#001433",
+                            "secondary-text": "#245998",
+                            accent: "#4dff00",
+                            "main-bg": "#0a0a0c",
+                            "card-bg": "#1a1a1e",
+                            "card-border": "#333333",
                         },
                         fontFamily: {
-                            display: ["Inter", "sans-serif"],
+                            sans: ["Montserrat", "sans-serif"],
+                            display: ["Montserrat", "sans-serif"],
                         },
                         borderRadius: {
                             DEFAULT: "0.75rem",
+                            lg: "1rem",
+                            xl: "1.5rem",
                         },
                     },
                 },
             };
         </script>
-        <style>
+        <style type="text/tailwindcss">
             .material-symbols-outlined {
                 font-variation-settings:
                     "FILL" 0,
@@ -57,69 +54,119 @@
                 margin-left: 2px;
             }
             ::-webkit-scrollbar {
-                width: 6px;
-                height: 6px;
+                width: 8px;
+                height: 8px;
             }
             ::-webkit-scrollbar-track {
-                background: transparent;
+                background: #1a1a1e;
+                border-radius: 10px;
             }
             ::-webkit-scrollbar-thumb {
-                background-color: #a4907c;
+                background-color: #4dff00;
                 border-radius: 20px;
+                border: 2px solid #1a1a1e;
+            }
+            .sort-icon.text-accent {
+                color: #4dff00;
+            }
+            a:hover,
+            a:focus {
+                color: #4dff00;
+            }
+            input:focus {
+                --tw-ring-color: #4dff00;
+                border-color: #4dff00;
+            }
+            .club-logo-lg {
+                width: 38px;
+                height: 38px;
+                min-width: 38px;
+                min-height: 38px;
+                border-radius: 50%;
+                object-fit: contain;
+                background-color: #333;
+                padding: 2px;
+            }
+            .text-primary-text {
+                color: #d1d1d1;
+            }
+            .text-secondary-text {
+                color: #a0a0a0;
+            }
+            .text-accent {
+                color: #4dff00;
+            }
+            .bg-card-bg {
+                background-color: #1a1a1e;
+                border: 1px solid #333333;
+            }
+            .bg-main-bg {
+                background-color: #0a0a0c;
+            }
+            .border-gray-200 {
+                border-color: #333333;
+            }
+            .placeholder-secondary-text\/70::placeholder {
+                color: #a0a0a0;
+            }
+            .graph-glow-effect {
+                filter: drop-shadow(0 0 5px rgba(77, 255, 0, 0.7))
+                    drop-shadow(0 0 10px rgba(77, 255, 0, 0.4));
+            }
+            .graph-label-glow {
+                text-shadow:
+                    0 0 4px rgba(77, 255, 0, 0.8),
+                    0 0 8px rgba(77, 255, 0, 0.5);
             }
         </style>
     </head>
-    <body
-        class="font-display bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark antialiased"
-    >
-        <div class="min-h-screen p-4 sm:p-6 lg:p-8">
+    <body class="font-sans bg-main-bg text-primary-text antialiased">
+        <div class="min-h-screen p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
             <!-- Header -->
             <header
-                class="flex flex-wrap items-center justify-between gap-4 mb-8"
+                class="flex flex-wrap items-center justify-between gap-4 mb-8 py-4 border-b border-card-border"
             >
                 <div class="flex items-center space-x-3">
-                    <span class="material-symbols-outlined text-3xl"
+                    <span class="material-symbols-outlined text-4xl text-accent"
                         >sports_soccer</span
                     >
-                    <h1
-                        class="text-2xl font-bold text-text-secondary-light dark:text-text-secondary-dark"
-                    >
+                    <h1 class="text-3xl font-bold text-white tracking-wide">
                         FootballRatings
                     </h1>
                 </div>
                 <nav
-                    class="flex items-center gap-x-4 sm:gap-x-6 text-sm font-medium"
+                    class="flex items-center gap-x-4 sm:gap-x-6 text-base font-medium text-secondary-text"
                 >
-                    <a class="hover:text-primary transition-colors" href="#"
+                    <a class="transition-colors hover:text-accent" href="#"
                         >The Case</a
                     >
-                    <a class="hover:text-primary transition-colors" href="#"
+                    <a class="transition-colors hover:text-accent" href="#"
                         >System</a
                     >
-                    <a class="hover:text-primary transition-colors" href="#"
+                    <a class="transition-colors hover:text-accent" href="#"
                         >Blog</a
                     >
-                    <a class="hover:text-primary transition-colors" href="#"
+                    <a class="transition-colors hover:text-accent" href="#"
                         >About</a
                     >
-                    <a class="hover:text-primary transition-colors" href="#"
+                    <a class="transition-colors hover:text-accent" href="#"
                         >Data</a
                     >
-                    <a class="hover:text-primary transition-colors" href="#"
+                    <a class="transition-colors hover:text-accent" href="#"
                         >API</a
                     >
-                    <a class="hover:text-primary transition-colors" href="#"
+                    <a class="transition-colors hover:text-accent" href="#"
                         >Stats</a
                     >
                 </nav>
                 <div class="relative w-full sm:w-auto">
                     <span
-                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary-light dark:text-text-secondary-dark"
+                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary-text"
                         >search</span
                     >
                     <input
                         id="search-input"
-                        class="w-full sm:w-64 pl-10 pr-4 py-2 rounded-lg bg-card-light dark:bg-card-dark border-transparent focus:border-primary focus:ring-primary placeholder-text-secondary-light dark:placeholder-text-secondary-dark text-sm"
+                        class="w-full sm:w-64 pl-10 pr-4 py-2 rounded-lg bg-card-bg border border-card-border placeholder-secondary-text/70 text-sm focus:ring-1 focus:ring-accent focus:border-accent text-primary-text"
                         placeholder="Search clubs..."
                         type="text"
                     />
@@ -127,94 +174,106 @@
             </header>
 
             <!-- Main Content -->
-            <main class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- Intro Card -->
-                <div class="lg:col-span-3 xl:col-span-2 space-y-6">
-                    <div
-                        class="bg-card-light dark:bg-card-dark p-6 rounded-lg shadow-sm"
+            <main class="grid grid-cols-1 gap-6">
+                <!-- Performance Trends Hero -->
+                <div
+                    class="bg-card-bg p-6 rounded-lg shadow-xl relative overflow-hidden"
+                >
+                    <h3
+                        class="text-4xl font-bold text-white mb-6 text-center tracking-wide drop-shadow-lg"
                     >
-                        <h2
-                            class="text-sm uppercase tracking-wider text-text-secondary-light dark:text-text-secondary-dark mb-1"
-                        >
-                            Intro Card
-                        </h2>
-                        <h3
-                            class="text-2xl font-bold text-text-secondary-light dark:text-text-secondary-dark mb-3"
-                        >
-                            Welcome to FootballRatings
-                        </h3>
-                        <p class="text-sm leading-relaxed">
-                            Welcome to clubelo.com, a website that provides Elo
-                            ratings for club football from the early days of the
-                            European Cup until today. A club's Elo rating is an
-                            estimation of its strength based on past results
-                            allowing predictions for the future.
-                        </p>
-                    </div>
-
-                    <!-- Performance Trends -->
+                        Performance Trends: Data Alive
+                    </h3>
                     <div
-                        class="bg-card-light dark:bg-card-dark p-6 rounded-lg shadow-sm"
+                        class="relative w-full aspect-[16/6] md:aspect-[16/5] lg:aspect-[16/4] xl:aspect-[16/3]"
                     >
-                        <h3
-                            class="text-lg font-semibold text-text-secondary-light dark:text-text-secondary-dark mb-4"
+                        <canvas
+                            id="performance-chart"
+                            class="w-full h-full rounded-lg"
+                        ></canvas>
+                        <div
+                            class="absolute inset-0 bg-gradient-to-t from-card-bg/70 via-card-bg/20 to-transparent flex items-end justify-center p-6"
                         >
-                            Performance Trends: Recently Strong Clubs
-                        </h3>
-                        <div class="relative h-64">
-                            <canvas id="performance-chart"></canvas>
+                            <div
+                                class="bg-card-bg/90 p-4 sm:p-6 rounded-lg shadow-2xl backdrop-blur-sm border border-card-border graph-label-glow"
+                                style="transform: translateY(10%)"
+                            >
+                                <ul
+                                    class="text-base sm:text-lg space-y-2 mb-4 text-secondary-text"
+                                    id="trending-clubs"
+                                >
+                                    <!-- Will be populated by JavaScript -->
+                                </ul>
+                                <div
+                                    class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4"
+                                >
+                                    <button
+                                        class="px-5 py-2 bg-accent text-primary-text font-bold rounded-lg hover:bg-opacity-80 transition-opacity transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-card-bg shadow-md"
+                                    >
+                                        Deep Dive
+                                    </button>
+                                    <button
+                                        class="px-5 py-2 bg-accent text-primary-text font-bold rounded-lg hover:bg-opacity-80 transition-opacity transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-card-bg shadow-md"
+                                    >
+                                        Compare Clubs
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Competition Ranking & Euro Top 25 -->
+                <!-- Tables and Fixtures Grid -->
                 <div
-                    class="lg:col-span-3 xl:col-span-2 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6"
+                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
                 >
                     <!-- Competition Ranking -->
                     <div
-                        class="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-sm flex flex-col"
+                        class="bg-card-bg p-4 rounded-lg shadow-lg flex flex-col border border-card-border lg:col-span-1 xl:col-span-1"
                     >
                         <h3
-                            class="text-lg font-semibold text-text-secondary-light dark:text-text-secondary-dark mb-4 px-2"
+                            class="text-xl font-bold text-white mb-4 px-2 border-b border-card-border pb-3"
                         >
                             Competition Ranking
                         </h3>
                         <div
                             class="flex-grow overflow-y-auto"
-                            style="max-height: 280px"
+                            style="max-height: 380px"
                         >
                             <table class="w-full text-sm text-left">
                                 <thead
-                                    class="sticky top-0 bg-card-light dark:bg-card-dark"
+                                    class="sticky top-0 bg-card-bg border-b border-card-border z-10"
                                 >
                                     <tr>
                                         <th
-                                            class="py-2 px-2 font-medium text-text-secondary-light dark:text-text-secondary-dark"
+                                            class="py-2 px-2 font-medium text-secondary-text"
                                         >
                                             League
                                             <span
-                                                class="material-symbols-outlined sort-icon"
+                                                class="material-symbols-outlined sort-icon text-white"
                                                 >arrow_upward</span
                                             >
                                         </th>
                                         <th
-                                            class="py-2 px-2 font-medium text-text-secondary-light dark:text-text-secondary-dark text-center"
+                                            class="py-2 px-2 font-medium text-secondary-text text-center"
                                         >
                                             Country
                                         </th>
                                         <th
-                                            class="py-2 px-2 font-medium text-text-secondary-light dark:text-text-secondary-dark text-right"
+                                            class="py-2 px-2 font-medium text-secondary-text text-right"
                                         >
                                             Rating
                                             <span
-                                                class="material-symbols-outlined sort-icon"
+                                                class="material-symbols-outlined sort-icon text-accent"
                                                 >arrow_downward</span
                                             >
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody id="competition-tbody">
+                                <tbody
+                                    class="text-secondary-text"
+                                    id="competition-tbody"
+                                >
                                     <!-- Will be populated by JavaScript -->
                                 </tbody>
                             </table>
@@ -223,103 +282,108 @@
 
                     <!-- Euro Top 25 -->
                     <div
-                        class="bg-card-light dark:bg-card-dark p-4 rounded-lg shadow-sm flex flex-col"
+                        class="bg-card-bg p-4 rounded-lg shadow-lg flex flex-col border border-card-border lg:col-span-1 xl:col-span-1"
                     >
                         <h3
-                            class="text-lg font-semibold text-text-secondary-light dark:text-text-secondary-dark mb-4 px-2"
+                            class="text-xl font-bold text-white mb-4 px-2 border-b border-card-border pb-3"
                         >
                             Euro Top 25
                         </h3>
                         <div
                             class="flex-grow overflow-y-auto"
-                            style="max-height: 280px"
+                            style="max-height: 380px"
                         >
                             <table class="w-full text-sm text-left">
                                 <thead
-                                    class="sticky top-0 bg-card-light dark:bg-card-dark"
+                                    class="sticky top-0 bg-card-bg border-b border-card-border z-10"
                                 >
                                     <tr>
                                         <th
-                                            class="py-2 px-2 font-medium text-text-secondary-light dark:text-text-secondary-dark"
+                                            class="py-2 px-2 font-medium text-secondary-text"
                                         >
                                             Rank
                                         </th>
                                         <th
-                                            class="py-2 px-2 font-medium text-text-secondary-light dark:text-text-secondary-dark"
+                                            class="py-2 px-2 font-medium text-secondary-text"
                                         >
                                             Club
                                         </th>
                                         <th
-                                            class="py-2 px-2 font-medium text-text-secondary-light dark:text-text-secondary-dark text-right"
+                                            class="py-2 px-2 font-medium text-secondary-text text-right"
                                         >
                                             Rating
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody id="euro-top-tbody">
+                                <tbody
+                                    class="text-secondary-text"
+                                    id="euro-top-tbody"
+                                >
                                     <!-- Will be populated by JavaScript -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                </div>
 
-                <!-- Today's Fixtures -->
-                <div
-                    class="lg:col-span-3 xl:col-span-4 bg-card-light dark:bg-card-dark p-6 rounded-lg shadow-sm"
-                >
-                    <h3
-                        class="text-lg font-semibold text-text-secondary-light dark:text-text-secondary-dark mb-4"
+                    <!-- Today's Fixtures -->
+                    <div class="lg:col-span-1 xl:col-span-2">
+                        <h3
+                            class="text-xl font-bold text-white mb-4 px-2 border-b border-card-border pb-3"
+                        >
+                            Today's Fixtures
+                        </h3>
+                        <div
+                            class="grid grid-cols-1 md:grid-cols-2 gap-4"
+                            id="fixtures-container"
+                        >
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Featured Analysis -->
+                    <div
+                        class="bg-card-bg p-6 rounded-lg shadow-lg border border-card-border lg:col-span-full xl:col-span-2 flex flex-col items-center text-center"
                     >
-                        Today's Fixtures
-                    </h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-center">
-                            <thead>
-                                <tr
-                                    class="border-b border-border-light dark:border-border-dark"
+                        <h3
+                            class="text-3xl font-bold text-white mb-6 tracking-wide border-b border-card-border pb-4 w-full"
+                        >
+                            Featured Analysis: The Midfield Maestro
+                        </h3>
+                        <div
+                            class="w-full flex flex-col lg:flex-row items-center lg:items-start gap-6"
+                        >
+                            <div
+                                class="w-full lg:w-1/2 h-64 bg-gradient-to-br from-accent/20 to-card-border rounded-lg flex items-center justify-center"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-8xl text-accent"
+                                    >sports</span
                                 >
-                                    <th
-                                        class="py-2 px-3 font-medium text-left text-text-secondary-light dark:text-text-secondary-dark"
+                            </div>
+                            <div class="flex-1 text-left">
+                                <p
+                                    class="text-lg text-secondary-text mb-4 leading-relaxed"
+                                >
+                                    Dive deep into the tactical evolution of
+                                    modern football. This week, we analyze the
+                                    critical role of the midfield maestro and
+                                    how top teams leverage their playmakers to
+                                    dominate possession and create scoring
+                                    opportunities.
+                                </p>
+                                <p class="text-base text-gray-500 italic mb-6">
+                                    "Control the midfield, control the game." -
+                                    Anonymous Football Strategist
+                                </p>
+                                <div class="flex justify-end lg:justify-start">
+                                    <button
+                                        class="px-6 py-3 bg-accent text-primary-text font-bold rounded-lg hover:bg-opacity-80 transition-opacity transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-card-bg shadow-md"
                                     >
-                                        Home Team
-                                    </th>
-                                    <th
-                                        class="py-2 px-3 font-medium text-left text-text-secondary-light dark:text-text-secondary-dark"
-                                    >
-                                        Away Team
-                                    </th>
-                                    <th
-                                        class="py-2 px-3 font-medium text-text-secondary-light dark:text-text-secondary-dark"
-                                    >
-                                        Home Elo
-                                    </th>
-                                    <th
-                                        class="py-2 px-3 font-medium text-text-secondary-light dark:text-text-secondary-dark"
-                                    >
-                                        Away Elo
-                                    </th>
-                                    <th
-                                        class="py-2 px-3 font-medium text-text-secondary-light dark:text-text-secondary-dark"
-                                    >
-                                        Home Win
-                                    </th>
-                                    <th
-                                        class="py-2 px-3 font-medium text-text-secondary-light dark:text-text-secondary-dark"
-                                    >
-                                        Draw
-                                    </th>
-                                    <th
-                                        class="py-2 px-3 font-medium text-text-secondary-light dark:text-text-secondary-dark"
-                                    >
-                                        Away Win
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody id="fixtures-tbody">
-                                <!-- Will be populated by JavaScript -->
-                            </tbody>
-                        </table>
+                                        Read Full Article
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -327,6 +391,6 @@
 
         <!-- Scripts -->
         <script src="/js/api.js"></script>
-        <script src="/js/minimalist.js"></script>
+        <script src="/js/command-center.js"></script>
     </body>
 </html>
