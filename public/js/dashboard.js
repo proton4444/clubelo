@@ -1,67 +1,69 @@
 // Tactician's Dashboard JavaScript
 
 // State management
-let currentRegion = 'EUR';
+let currentRegion = "EUR";
 let currentLimit = 25;
 let rankingsData = [];
 let overallTrendChart = null;
 
 // Club logo mapping (using shields.io and team-logos)
 const LOGO_SOURCES = {
-  'Man City': 'https://cdn.simpleicons.org/mancity/skyblue',
-  'Real Madrid': 'https://cdn.simpleicons.org/realmadrid/white',
-  'Inter Milan': 'https://cdn.simpleicons.org/internazionale/blue',
-  'Bayern Munich': 'https://cdn.simpleicons.org/bayernmunich/red',
-  'Liverpool': 'https://cdn.simpleicons.org/liverpool/red',
-  'Arsenal': 'https://cdn.simpleicons.org/arsenal/red',
-  'Barcelona': 'https://cdn.simpleicons.org/fcbarcelona/darkred',
-  'PSG': 'https://cdn.simpleicons.org/psg/navy',
-  'AC Milan': 'https://cdn.simpleicons.org/acmilan/red',
-  'Napoli': 'https://cdn.simpleicons.org/sscnapoli/skyblue',
-  'Man Utd': 'https://cdn.simpleicons.org/manchesterunited/red',
-  'Tottenham': 'https://cdn.simpleicons.org/tottenhamhotspur/navy',
-  'Chelsea': 'https://cdn.simpleicons.org/chelsea/blue',
-  'Dortmund': 'https://cdn.simpleicons.org/borussiadortmund/yellow',
-  'Juventus': 'https://cdn.simpleicons.org/juventus/black',
+  "Man City": "https://cdn.simpleicons.org/mancity/6CABDD",
+  "Real Madrid": "https://cdn.simpleicons.org/realmadrid/FEBE10",
+  Inter: "https://cdn.simpleicons.org/internazionale/0068A8",
+  Bayern: "https://cdn.simpleicons.org/fcbayernmunchen/DC052D",
+  Liverpool: "https://cdn.simpleicons.org/liverpool/C8102E",
+  Arsenal: "https://cdn.simpleicons.org/arsenal/EF0107",
+  Barcelona: "https://cdn.simpleicons.org/fcbarcelona/004D98",
+  "Paris SG": "https://cdn.simpleicons.org/psg/004170",
+  Milan: "https://cdn.simpleicons.org/acmilan/FB090B",
+  Napoli: "https://cdn.simpleicons.org/sscnapoli/0B4289",
+  "Man United": "https://cdn.simpleicons.org/manchesterunited/DA291C",
+  Tottenham: "https://cdn.simpleicons.org/tottenhamhotspur/132257",
+  Chelsea: "https://cdn.simpleicons.org/chelsea/034694",
+  Dortmund: "https://cdn.simpleicons.org/borussiadortmund/FDE100",
+  Juventus: "https://cdn.simpleicons.org/juventus/000000",
+  Atletico: "https://cdn.simpleicons.org/atleticodemadrid/CB3524",
+  Leverkusen: "https://cdn.simpleicons.org/bayer04leverkusen/E32221",
 };
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   initializeEventListeners();
   loadRankings();
 });
 
 // Event listeners
 function initializeEventListeners() {
-  const menuBtn = document.getElementById('menu-btn');
-  const searchBtn = document.getElementById('search-btn');
-  const filterBtn = document.getElementById('filter-btn');
-  const sortBtn = document.getElementById('sort-btn');
+  const menuBtn = document.getElementById("menu-btn");
+  const searchBtn = document.getElementById("search-btn");
+  const filterBtn = document.getElementById("filter-btn");
+  const sortBtn = document.getElementById("sort-btn");
 
   if (menuBtn) {
-    menuBtn.addEventListener('click', () => {
-      console.log('Menu clicked');
+    menuBtn.addEventListener("click", () => {
+      console.log("Menu clicked");
       // Future: Open sidebar menu
     });
   }
 
   if (searchBtn) {
-    searchBtn.addEventListener('click', () => {
-      console.log('Search clicked');
+    searchBtn.addEventListener("click", () => {
+      console.log("Search clicked");
       // Future: Open search modal
     });
   }
 
   if (filterBtn) {
-    filterBtn.addEventListener('click', () => {
-      console.log('Filter clicked');
+    filterBtn.addEventListener("click", () => {
+      console.log("Filter clicked");
       // Future: Open filter modal
     });
   }
 
   if (sortBtn) {
-    sortBtn.addEventListener('click', () => {
-      console.log('Sort clicked');
+    sortBtn.addEventListener("click", () => {
+      console.log("Sort clicked");
       // Future: Open sort options
     });
   }
@@ -80,13 +82,13 @@ async function loadRankings() {
     }
 
     const data = await response.json();
-    rankingsData = data.rankings || [];
+    rankingsData = data.clubs || [];
 
     renderRankingsTable();
     await loadHistoricalData();
   } catch (error) {
-    console.error('Error loading rankings:', error);
-    showError('Failed to load rankings data');
+    console.error("Error loading rankings:", error);
+    showError("Failed to load rankings data");
   } finally {
     showLoading(false);
   }
@@ -94,28 +96,28 @@ async function loadRankings() {
 
 // Render rankings table
 function renderRankingsTable() {
-  const tbody = document.getElementById('rankings-body');
+  const tbody = document.getElementById("rankings-body");
   if (!tbody) return;
 
-  tbody.innerHTML = '';
+  tbody.innerHTML = "";
 
   rankingsData.forEach((club, index) => {
     const rank = index + 1;
-    const row = document.createElement('tr');
+    const row = document.createElement("tr");
 
     row.innerHTML = `
       <td class="col-rank">${rank}</td>
       <td class="col-club">
         <div class="club-cell">
           <div class="club-logo">
-            ${getClubLogo(club.display_name || club.club_name)}
+            ${getClubLogo(club.displayName || club.apiName)}
           </div>
-          <span class="club-name">${club.display_name || club.club_name}</span>
+          <span class="club-name">${club.displayName || club.apiName}</span>
         </div>
       </td>
       <td class="col-elo">${Math.round(club.elo)}</td>
       <td class="col-trend">
-        <canvas class="trend-sparkline" data-club="${club.club_name}"></canvas>
+        <canvas class="trend-sparkline" data-club="${club.apiName}"></canvas>
       </td>
     `;
 
@@ -139,7 +141,7 @@ function getClubLogo(clubName) {
 
 // Get club initials as fallback
 function getInitials(clubName) {
-  const words = clubName.split(' ');
+  const words = clubName.split(" ");
   if (words.length >= 2) {
     return words[0][0] + words[1][0];
   }
@@ -148,10 +150,10 @@ function getInitials(clubName) {
 
 // Draw sparkline charts
 function drawSparklines() {
-  const sparklines = document.querySelectorAll('.trend-sparkline');
+  const sparklines = document.querySelectorAll(".trend-sparkline");
 
-  sparklines.forEach(canvas => {
-    const ctx = canvas.getContext('2d');
+  sparklines.forEach((canvas) => {
+    const ctx = canvas.getContext("2d");
     const clubName = canvas.dataset.club;
 
     // Generate mock trend data (in production, fetch from API)
@@ -178,8 +180,8 @@ function generateMockTrendData() {
 
 // Draw individual sparkline
 function drawSparkline(ctx, canvas, data) {
-  const width = canvas.width = canvas.offsetWidth * 2;
-  const height = canvas.height = canvas.offsetHeight * 2;
+  const width = (canvas.width = canvas.offsetWidth * 2);
+  const height = (canvas.height = canvas.offsetHeight * 2);
 
   ctx.scale(2, 2);
 
@@ -192,10 +194,10 @@ function drawSparkline(ctx, canvas, data) {
 
   // Draw line
   ctx.beginPath();
-  ctx.strokeStyle = '#00ff88';
+  ctx.strokeStyle = "#00ff88";
   ctx.lineWidth = 2;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
 
   data.forEach((value, index) => {
     const x = (index / (data.length - 1)) * displayWidth;
@@ -220,7 +222,7 @@ async function loadHistoricalData() {
 
     renderOverallTrendChart(monthlyData);
   } catch (error) {
-    console.error('Error loading historical data:', error);
+    console.error("Error loading historical data:", error);
   }
 }
 
@@ -241,10 +243,10 @@ function generateMonthlyTrendData() {
 
 // Render overall trend chart
 function renderOverallTrendChart(data) {
-  const canvas = document.getElementById('overall-trend-chart');
+  const canvas = document.getElementById("overall-trend-chart");
   if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
 
   // Destroy existing chart if any
   if (overallTrendChart) {
@@ -259,108 +261,114 @@ function renderOverallTrendChart(data) {
   });
 
   overallTrendChart = new Chart(ctx, {
-    type: 'line',
+    type: "line",
     data: {
       labels: labels,
-      datasets: [{
-        data: data,
-        borderColor: '#00ff88',
-        borderWidth: 2.5,
-        fill: false,
-        tension: 0.4,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        pointHoverBackgroundColor: '#00ff88',
-        pointHoverBorderColor: '#000000',
-        pointHoverBorderWidth: 2,
-      }]
+      datasets: [
+        {
+          data: data,
+          borderColor: "#00ff88",
+          borderWidth: 2.5,
+          fill: false,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: "#00ff88",
+          pointHoverBorderColor: "#000000",
+          pointHoverBorderWidth: 2,
+        },
+      ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          display: false
+          display: false,
         },
         tooltip: {
           enabled: true,
-          mode: 'index',
+          mode: "index",
           intersect: false,
-          backgroundColor: '#1f1f1f',
-          titleColor: '#ffffff',
-          bodyColor: '#a0a0a0',
-          borderColor: '#333333',
+          backgroundColor: "#1f1f1f",
+          titleColor: "#ffffff",
+          bodyColor: "#a0a0a0",
+          borderColor: "#333333",
           borderWidth: 1,
           padding: 12,
           displayColors: false,
           callbacks: {
-            title: function(context) {
+            title: function (context) {
               const date = context[0].parsed.x;
-              return new Date(labels[date]).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric'
+              return new Date(labels[date]).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
               });
             },
-            label: function(context) {
+            label: function (context) {
               return `Avg Elo: ${Math.round(context.parsed.y)}`;
-            }
-          }
-        }
+            },
+          },
+        },
       },
       scales: {
         x: {
           display: true,
           grid: {
             display: false,
-            drawBorder: false
+            drawBorder: false,
           },
           ticks: {
             display: true,
             maxTicksLimit: 3,
-            color: '#666666',
+            color: "#666666",
             font: {
-              size: 11
+              size: 11,
             },
-            callback: function(value, index, ticks) {
+            callback: function (value, index, ticks) {
               const date = labels[value];
-              if (!date) return '';
+              if (!date) return "";
 
               // Show month names at roughly equal intervals
               const totalTicks = ticks.length;
-              if (index === 0 || index === Math.floor(totalTicks / 2) || index === totalTicks - 1) {
-                return date.toLocaleDateString('en-US', { month: 'short' });
+              if (
+                index === 0 ||
+                index === Math.floor(totalTicks / 2) ||
+                index === totalTicks - 1
+              ) {
+                return date.toLocaleDateString("en-US", { month: "short" });
               }
-              return '';
-            }
-          }
+              return "";
+            },
+          },
         },
         y: {
           display: false,
           grid: {
-            display: false
-          }
-        }
+            display: false,
+          },
+        },
       },
       interaction: {
-        mode: 'index',
-        intersect: false
-      }
-    }
+        mode: "index",
+        intersect: false,
+      },
+    },
   });
 }
 
 // Show/hide loading overlay
 function showLoading(show) {
-  const overlay = document.getElementById('loading-overlay');
+  const overlay = document.getElementById("loading-overlay");
   if (overlay) {
-    overlay.style.display = show ? 'flex' : 'none';
+    overlay.style.display = show ? "flex" : "none";
   }
 }
 
 // Show error message
 function showError(message) {
   console.error(message);
-  const tbody = document.getElementById('rankings-body');
+  const tbody = document.getElementById("rankings-body");
   if (tbody) {
     tbody.innerHTML = `
       <tr>
@@ -382,5 +390,5 @@ window.ClubEloDashboard = {
   setLimit: (limit) => {
     currentLimit = limit;
     loadRankings();
-  }
+  },
 };
