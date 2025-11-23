@@ -3,394 +3,305 @@
     <head>
         <meta charset="utf-8" />
         <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-        <title>FootballRatings - Command Center</title>
-        <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+        <title>Football Club Elo Ratings</title>
+        <script src="https://cdn.tailwindcss.com"></script>
         <link
-            href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
             rel="stylesheet"
         />
         <link
-            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
             rel="stylesheet"
         />
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-        <script>
-            tailwind.config = {
-                theme: {
-                    extend: {
-                        colors: {
-                            "primary-text": "#001433",
-                            "secondary-text": "#245998",
-                            accent: "#4dff00",
-                            "main-bg": "#0a0a0c",
-                            "card-bg": "#1a1a1e",
-                            "card-border": "#333333",
-                        },
-                        fontFamily: {
-                            sans: ["Montserrat", "sans-serif"],
-                            display: ["Montserrat", "sans-serif"],
-                        },
-                        borderRadius: {
-                            DEFAULT: "0.75rem",
-                            lg: "1rem",
-                            xl: "1.5rem",
-                        },
-                    },
-                },
-            };
-        </script>
-        <style type="text/tailwindcss">
-            .material-symbols-outlined {
-                font-variation-settings:
-                    "FILL" 0,
-                    "wght" 400,
-                    "GRAD" 0,
-                    "opsz" 24;
-                font-size: 20px;
+        <style>
+            body {
+                font-family: "Inter", sans-serif;
+                background: #1a1d29;
+                color: #e0e0e0;
             }
-            .sort-icon {
-                font-size: 16px;
-                vertical-align: middle;
-                margin-left: 2px;
+            .sidebar {
+                background: #0f111a;
+                border-right: 1px solid #2a2d3a;
+            }
+            .sidebar-item {
+                padding: 0.75rem 1rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 1px solid #2a2d3a;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .sidebar-item:hover {
+                background: #1a1d29;
+            }
+            .progress-bar {
+                height: 8px;
+                border-radius: 4px;
+                overflow: hidden;
+                background: #2a2d3a;
+            }
+            .progress-fill {
+                height: 100%;
+                transition: width 0.3s;
+            }
+            .card {
+                background: #22252f;
+                border-radius: 8px;
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+            .material-symbols-outlined {
+                font-size: 24px;
             }
             ::-webkit-scrollbar {
-                width: 8px;
-                height: 8px;
+                width: 6px;
             }
             ::-webkit-scrollbar-track {
-                background: #1a1a1e;
-                border-radius: 10px;
+                background: #1a1d29;
             }
             ::-webkit-scrollbar-thumb {
-                background-color: #4dff00;
-                border-radius: 20px;
-                border: 2px solid #1a1a1e;
-            }
-            .sort-icon.text-accent {
-                color: #4dff00;
-            }
-            a:hover,
-            a:focus {
-                color: #4dff00;
-            }
-            input:focus {
-                --tw-ring-color: #4dff00;
-                border-color: #4dff00;
-            }
-            .club-logo-lg {
-                width: 38px;
-                height: 38px;
-                min-width: 38px;
-                min-height: 38px;
-                border-radius: 50%;
-                object-fit: contain;
-                background-color: #333;
-                padding: 2px;
-            }
-            .text-primary-text {
-                color: #d1d1d1;
-            }
-            .text-secondary-text {
-                color: #a0a0a0;
-            }
-            .text-accent {
-                color: #4dff00;
-            }
-            .bg-card-bg {
-                background-color: #1a1a1e;
-                border: 1px solid #333333;
-            }
-            .bg-main-bg {
-                background-color: #0a0a0c;
-            }
-            .border-gray-200 {
-                border-color: #333333;
-            }
-            .placeholder-secondary-text\/70::placeholder {
-                color: #a0a0a0;
-            }
-            .graph-glow-effect {
-                filter: drop-shadow(0 0 5px rgba(77, 255, 0, 0.7))
-                    drop-shadow(0 0 10px rgba(77, 255, 0, 0.4));
-            }
-            .graph-label-glow {
-                text-shadow:
-                    0 0 4px rgba(77, 255, 0, 0.8),
-                    0 0 8px rgba(77, 255, 0, 0.5);
+                background: #4a4d5a;
+                border-radius: 3px;
             }
         </style>
     </head>
-    <body class="font-sans bg-main-bg text-primary-text antialiased">
-        <div class="min-h-screen p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-            <!-- Header -->
-            <header
-                class="flex flex-wrap items-center justify-between gap-4 mb-8 py-4 border-b border-card-border"
-            >
-                <div class="flex items-center space-x-3">
-                    <span class="material-symbols-outlined text-4xl text-accent"
-                        >sports_soccer</span
+    <body class="flex">
+        <!-- Sidebar -->
+        <aside class="sidebar w-64 h-screen overflow-y-auto fixed left-0 top-0">
+            <div class="p-4 border-b border-gray-700">
+                <div class="flex items-center gap-2">
+                    <div
+                        class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center"
                     >
-                    <h1 class="text-3xl font-bold text-white tracking-wide">
-                        FootballRatings
-                    </h1>
+                        <span
+                            class="material-symbols-outlined text-white text-sm"
+                            >sports_soccer</span
+                        >
+                    </div>
+                    <div>
+                        <h1 class="text-sm font-bold text-white">
+                            Football Club
+                        </h1>
+                        <p class="text-xs text-gray-400">Elo Ratings</p>
+                    </div>
                 </div>
-                <nav
-                    class="flex items-center gap-x-4 sm:gap-x-6 text-base font-medium text-secondary-text"
+            </div>
+
+            <div class="p-4">
+                <h3 class="text-xs font-semibold text-gray-400 mb-3">
+                    Countries/Leagues
+                </h3>
+                <div id="countries-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 flex-1 p-6">
+            <!-- Top Navigation -->
+            <nav
+                class="flex items-center gap-6 mb-6 pb-4 border-b border-gray-700"
+            >
+                <button class="flex items-center gap-2 text-purple-400">
+                    <span class="material-symbols-outlined">pie_chart</span>
+                    <span class="text-sm font-medium">The Case</span>
+                </button>
+                <button
+                    class="flex items-center gap-2 text-gray-400 hover:text-purple-400"
                 >
-                    <a class="transition-colors hover:text-accent" href="#"
-                        >The Case</a
-                    >
-                    <a class="transition-colors hover:text-accent" href="#"
-                        >System</a
-                    >
-                    <a class="transition-colors hover:text-accent" href="#"
-                        >Blog</a
-                    >
-                    <a class="transition-colors hover:text-accent" href="#"
-                        >About</a
-                    >
-                    <a class="transition-colors hover:text-accent" href="#"
-                        >Data</a
-                    >
-                    <a class="transition-colors hover:text-accent" href="#"
-                        >API</a
-                    >
-                    <a class="transition-colors hover:text-accent" href="#"
-                        >Stats</a
-                    >
-                </nav>
-                <div class="relative w-full sm:w-auto">
+                    <span class="material-symbols-outlined">settings</span>
+                    <span class="text-sm font-medium">System</span>
+                </button>
+                <button
+                    class="flex items-center gap-2 text-gray-400 hover:text-purple-400"
+                >
+                    <span class="material-symbols-outlined">edit</span>
+                    <span class="text-sm font-medium">Blog</span>
+                </button>
+                <button
+                    class="flex items-center gap-2 text-gray-400 hover:text-purple-400"
+                >
+                    <span class="material-symbols-outlined">person</span>
+                    <span class="text-sm font-medium">About</span>
+                </button>
+                <button
+                    class="flex items-center gap-2 text-gray-400 hover:text-purple-400"
+                >
+                    <span class="material-symbols-outlined">description</span>
+                    <span class="text-sm font-medium">Bets</span>
+                </button>
+                <button
+                    class="flex items-center gap-2 text-gray-400 hover:text-purple-400"
+                >
+                    <span class="material-symbols-outlined">api</span>
+                    <span class="text-sm font-medium">API</span>
+                </button>
+                <button
+                    class="flex items-center gap-2 text-gray-400 hover:text-purple-400"
+                >
+                    <span class="material-symbols-outlined">bar_chart</span>
+                    <span class="text-sm font-medium">Stats</span>
+                </button>
+                <div
+                    class="ml-auto flex items-center gap-2 bg-gray-800 rounded px-3 py-2"
+                >
                     <span
-                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary-text"
+                        class="material-symbols-outlined text-gray-400 text-sm"
                         >search</span
                     >
                     <input
-                        id="search-input"
-                        class="w-full sm:w-64 pl-10 pr-4 py-2 rounded-lg bg-card-bg border border-card-border placeholder-secondary-text/70 text-sm focus:ring-1 focus:ring-accent focus:border-accent text-primary-text"
-                        placeholder="Search clubs..."
                         type="text"
+                        placeholder="Search"
+                        class="bg-transparent border-none outline-none text-sm text-gray-300 w-32"
                     />
                 </div>
-            </header>
+            </nav>
 
-            <!-- Main Content -->
-            <main class="grid grid-cols-1 gap-6">
-                <!-- Performance Trends Hero -->
-                <div
-                    class="bg-card-bg p-6 rounded-lg shadow-xl relative overflow-hidden"
-                >
-                    <h3
-                        class="text-4xl font-bold text-white mb-6 text-center tracking-wide drop-shadow-lg"
-                    >
-                        Performance Trends: Data Alive
-                    </h3>
-                    <div
-                        class="relative w-full aspect-[16/6] md:aspect-[16/5] lg:aspect-[16/4] xl:aspect-[16/3]"
-                    >
-                        <canvas
-                            id="performance-chart"
-                            class="w-full h-full rounded-lg"
-                        ></canvas>
-                        <div
-                            class="absolute inset-0 bg-gradient-to-t from-card-bg/70 via-card-bg/20 to-transparent flex items-end justify-center p-6"
-                        >
-                            <div
-                                class="bg-card-bg/90 p-4 sm:p-6 rounded-lg shadow-2xl backdrop-blur-sm border border-card-border graph-label-glow"
-                                style="transform: translateY(10%)"
+            <div class="grid grid-cols-3 gap-6">
+                <!-- Left Column -->
+                <div class="col-span-2">
+                    <!-- Introduction -->
+                    <div class="card">
+                        <h2 class="text-2xl font-bold text-white mb-3">
+                            Introduction
+                        </h2>
+                        <p class="text-sm text-gray-400 leading-relaxed">
+                            Football Club Elo Ratings is a comprehensive modern
+                            typography of ai history egengamtion greatly the
+                            consumator of pinteal quieks, using as sem the
+                            goeveroly price vixung the most unrelemt country
+                            enumies in longer, duirds ghosts and more, inyant
+                            contratibution factor profile such as Football Club
+                            teand eweettroni clius Elo Ratings.
+                            <span class="text-purple-400 italic"
+                                >Insen to xonen and mesatiles.</span
                             >
-                                <ul
-                                    class="text-base sm:text-lg space-y-2 mb-4 text-secondary-text"
-                                    id="trending-clubs"
-                                >
-                                    <!-- Will be populated by JavaScript -->
-                                </ul>
-                                <div
-                                    class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4"
-                                >
-                                    <button
-                                        class="px-5 py-2 bg-accent text-primary-text font-bold rounded-lg hover:bg-opacity-80 transition-opacity transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-card-bg shadow-md"
-                                    >
-                                        Deep Dive
-                                    </button>
-                                    <button
-                                        class="px-5 py-2 bg-accent text-primary-text font-bold rounded-lg hover:bg-opacity-80 transition-opacity transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-card-bg shadow-md"
-                                    >
-                                        Compare Clubs
-                                    </button>
-                                </div>
-                            </div>
+                        </p>
+                    </div>
+
+                    <!-- Recently strong clubs -->
+                    <div class="card">
+                        <h2 class="text-xl font-bold text-white mb-4">
+                            Recently strong clubs
+                        </h2>
+                        <div style="height: 300px">
+                            <canvas id="recent-chart"></canvas>
                         </div>
                     </div>
-                </div>
 
-                <!-- Tables and Fixtures Grid -->
-                <div
-                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                >
-                    <!-- Competition Ranking -->
-                    <div
-                        class="bg-card-bg p-4 rounded-lg shadow-lg flex flex-col border border-card-border lg:col-span-1 xl:col-span-1"
-                    >
-                        <h3
-                            class="text-xl font-bold text-white mb-4 px-2 border-b border-card-border pb-3"
-                        >
-                            Competition Ranking
-                        </h3>
-                        <div
-                            class="flex-grow overflow-y-auto"
-                            style="max-height: 380px"
-                        >
-                            <table class="w-full text-sm text-left">
+                    <!-- Today -->
+                    <div class="card">
+                        <h2 class="text-xl font-bold text-white mb-4">Today</h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm" id="today-table">
                                 <thead
-                                    class="sticky top-0 bg-card-bg border-b border-card-border z-10"
+                                    class="text-gray-400 border-b border-gray-700"
                                 >
                                     <tr>
-                                        <th
-                                            class="py-2 px-2 font-medium text-secondary-text"
-                                        >
-                                            League
-                                            <span
-                                                class="material-symbols-outlined sort-icon text-white"
-                                                >arrow_upward</span
-                                            >
+                                        <th class="text-left pb-2">#</th>
+                                        <th class="text-left pb-2">Club</th>
+                                        <th class="text-left pb-2">Date</th>
+                                        <th class="text-left pb-2">Rank</th>
+                                        <th class="text-left pb-2">Elo</th>
+                                        <th class="text-left pb-2">
+                                            Match Odds
                                         </th>
-                                        <th
-                                            class="py-2 px-2 font-medium text-secondary-text text-center"
-                                        >
-                                            Country
-                                        </th>
-                                        <th
-                                            class="py-2 px-2 font-medium text-secondary-text text-right"
-                                        >
-                                            Rating
-                                            <span
-                                                class="material-symbols-outlined sort-icon text-accent"
-                                                >arrow_downward</span
-                                            >
-                                        </th>
+                                        <th class="text-left pb-2">Results</th>
                                     </tr>
                                 </thead>
-                                <tbody
-                                    class="text-secondary-text"
-                                    id="competition-tbody"
-                                >
-                                    <!-- Will be populated by JavaScript -->
+                                <tbody id="today-tbody">
+                                    <!-- Populated by JS -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
-                    <!-- Euro Top 25 -->
-                    <div
-                        class="bg-card-bg p-4 rounded-lg shadow-lg flex flex-col border border-card-border lg:col-span-1 xl:col-span-1"
-                    >
-                        <h3
-                            class="text-xl font-bold text-white mb-4 px-2 border-b border-card-border pb-3"
-                        >
+                    <!-- Yesterday -->
+                    <div class="card">
+                        <h2 class="text-xl font-bold text-white mb-4">
+                            Yesterday
+                        </h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm" id="yesterday-table">
+                                <thead
+                                    class="text-gray-400 border-b border-gray-700"
+                                >
+                                    <tr>
+                                        <th class="text-left pb-2">#</th>
+                                        <th class="text-left pb-2">Club</th>
+                                        <th class="text-left pb-2">Date</th>
+                                        <th class="text-left pb-2">Rank</th>
+                                        <th class="text-left pb-2">Elo</th>
+                                        <th class="text-left pb-2">
+                                            Match Odds
+                                        </th>
+                                        <th class="text-left pb-2">Results</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="yesterday-tbody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Big clubs' eras -->
+                    <div class="card">
+                        <h2 class="text-xl font-bold text-white mb-4">
+                            Big clubs' eras
+                        </h2>
+                        <div style="height: 300px">
+                            <canvas id="eras-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Coaches -->
+                    <div class="card">
+                        <h2 class="text-xl font-bold text-white mb-4">
+                            Coaches
+                        </h2>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead
+                                    class="text-gray-400 border-b border-gray-700"
+                                >
+                                    <tr>
+                                        <th class="text-left pb-2">Coache</th>
+                                        <th class="text-left pb-2">Club</th>
+                                        <th class="text-left pb-2">Tenure</th>
+                                        <th class="text-left pb-2">Games</th>
+                                        <th class="text-left pb-2">
+                                            Career ELO
+                                        </th>
+                                        <th class="text-left pb-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="coaches-tbody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column - Euro Top 25 -->
+                <div class="col-span-1">
+                    <div class="card sticky top-6">
+                        <h2 class="text-xl font-bold text-white mb-4">
                             Euro Top 25
-                        </h3>
-                        <div
-                            class="flex-grow overflow-y-auto"
-                            style="max-height: 380px"
-                        >
-                            <table class="w-full text-sm text-left">
-                                <thead
-                                    class="sticky top-0 bg-card-bg border-b border-card-border z-10"
-                                >
-                                    <tr>
-                                        <th
-                                            class="py-2 px-2 font-medium text-secondary-text"
-                                        >
-                                            Rank
-                                        </th>
-                                        <th
-                                            class="py-2 px-2 font-medium text-secondary-text"
-                                        >
-                                            Club
-                                        </th>
-                                        <th
-                                            class="py-2 px-2 font-medium text-secondary-text text-right"
-                                        >
-                                            Rating
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody
-                                    class="text-secondary-text"
-                                    id="euro-top-tbody"
-                                >
-                                    <!-- Will be populated by JavaScript -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Today's Fixtures -->
-                    <div class="lg:col-span-1 xl:col-span-2">
-                        <h3
-                            class="text-xl font-bold text-white mb-4 px-2 border-b border-card-border pb-3"
-                        >
-                            Today's Fixtures
-                        </h3>
-                        <div
-                            class="grid grid-cols-1 md:grid-cols-2 gap-4"
-                            id="fixtures-container"
-                        >
-                            <!-- Will be populated by JavaScript -->
-                        </div>
-                    </div>
-
-                    <!-- Featured Analysis -->
-                    <div
-                        class="bg-card-bg p-6 rounded-lg shadow-lg border border-card-border lg:col-span-full xl:col-span-2 flex flex-col items-center text-center"
-                    >
-                        <h3
-                            class="text-3xl font-bold text-white mb-6 tracking-wide border-b border-card-border pb-4 w-full"
-                        >
-                            Featured Analysis: The Midfield Maestro
-                        </h3>
-                        <div
-                            class="w-full flex flex-col lg:flex-row items-center lg:items-start gap-6"
-                        >
-                            <div
-                                class="w-full lg:w-1/2 h-64 bg-gradient-to-br from-accent/20 to-card-border rounded-lg flex items-center justify-center"
-                            >
-                                <span
-                                    class="material-symbols-outlined text-8xl text-accent"
-                                    >sports</span
-                                >
-                            </div>
-                            <div class="flex-1 text-left">
-                                <p
-                                    class="text-lg text-secondary-text mb-4 leading-relaxed"
-                                >
-                                    Dive deep into the tactical evolution of
-                                    modern football. This week, we analyze the
-                                    critical role of the midfield maestro and
-                                    how top teams leverage their playmakers to
-                                    dominate possession and create scoring
-                                    opportunities.
-                                </p>
-                                <p class="text-base text-gray-500 italic mb-6">
-                                    "Control the midfield, control the game." -
-                                    Anonymous Football Strategist
-                                </p>
-                                <div class="flex justify-end lg:justify-start">
-                                    <button
-                                        class="px-6 py-3 bg-accent text-primary-text font-bold rounded-lg hover:bg-opacity-80 transition-opacity transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-card-bg shadow-md"
-                                    >
-                                        Read Full Article
-                                    </button>
-                                </div>
-                            </div>
+                        </h2>
+                        <div id="euro-top-list" class="space-y-2">
+                            <!-- Populated by JS -->
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
+            </div>
+        </main>
 
-        <!-- Scripts -->
         <script src="/js/api.js"></script>
-        <script src="/js/command-center.js"></script>
+        <script src="/js/dashboard-full.js"></script>
     </body>
 </html>
