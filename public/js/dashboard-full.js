@@ -384,3 +384,106 @@ function generateEraData() {
   }
   return data;
 }
+
+// Navigate to country page
+function navigateToCountry(countryCode) {
+  window.location.href = `/?country=${countryCode}`;
+}
+
+// Show country-specific page
+function showCountryPage(countryCode) {
+  const mainContent = document.querySelector("main > div");
+  mainContent.innerHTML = `
+    <div class="p-6">
+      <button onclick="window.location.href='/'" class="flex items-center gap-2 px-4 py-2 rounded mb-6 bg-purple-600 hover:bg-purple-700 transition">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Back to Dashboard
+      </button>
+
+      <h1 class="text-3xl font-bold text-white mb-6">${countryCode} - Clubs Ranking</h1>
+
+      <div class="grid grid-cols-4 gap-4 mb-6">
+        <div class="card">
+          <div class="text-gray-400 text-sm mb-1">Total Clubs</div>
+          <div id="total-clubs" class="text-3xl font-bold text-white">0</div>
+        </div>
+        <div class="card">
+          <div class="text-gray-400 text-sm mb-1">Avg Elo</div>
+          <div id="avg-elo" class="text-3xl font-bold text-purple-400">0</div>
+        </div>
+        <div class="card">
+          <div class="text-gray-400 text-sm mb-1">Top Club Elo</div>
+          <div id="top-elo" class="text-3xl font-bold text-green-400">0</div>
+        </div>
+        <div class="card">
+          <div class="text-gray-400 text-sm mb-1">Avg Rank</div>
+          <div id="avg-rank" class="text-3xl font-bold text-blue-400">0</div>
+        </div>
+      </div>
+
+      <div class="card mb-6">
+        <h2 class="text-xl font-bold text-white mb-4">Clubs Ranked by Elo</h2>
+        <div id="clubs-list" class="space-y-2">
+          Loading...
+        </div>
+      </div>
+    </div>
+  `;
+
+  renderCountryData(countryCode);
+}
+
+// Render country page data
+async function renderCountryData(countryCode) {
+  try {
+    const response = await fetch(
+      `/api/elo/rankings?country=${countryCode}&pageSize=100`,
+    );
+    const data = await response.json();
+    const clubs = data.clubs || [];
+
+    if (clubs.length === 0) {
+      document.getElementById("clubs-list").innerHTML =
+        '<p class="text-gray-400">No clubs found for this country</p>';
+      return;
+    }
+
+    // Update stats
+    const totalClubs = clubs.length;
+    const avgElo = Math.round(
+      clubs.reduce((sum, c) => sum + c.elo, 0) / totalClubs,
+    );
+    const topElo = Math.round(clubs[0].elo);
+    const avgRank = Math.round(
+      clubs.reduce((sum, c) => sum + (c.rank || 0), 0) / totalClubs,
+    );
+
+    document.getElementById("total-clubs").textContent = totalClubs;
+    document.getElementById("avg-elo").textContent = avgElo;
+    document.getElementById("top-elo").textContent = topElo;
+    document.getElementById("avg-rank").textContent = avgRank;
+
+    // Render clubs list
+    const clubsList = document.getElementById("clubs-list");
+    clubsList.innerHTML = clubs
+      .map(
+        (club, index) => `
+      <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded hover:bg-gray-700/50 transition">
+        <div class="flex items-center gap-3">
+          <span class="text-gray-400 font-mono text-sm w-8">#${index + 1}</span>
+          <span class="text-white font-medium">${club.displayName}</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="text-gray-400 text-sm">Rank: ${club.rank || "N/A"}</span>
+          <span class="text-purple-400 font-bold">${Math.round(club.elo)}</span>
+        </div>
+      </div>
+    `,
+      )
+      .join("");
+  } catch (error) {
+    console.error("Error loading country data:", error);
+    document.getElementById("clubs-list").innerHTML =
+      '<p class="text-red-400">Error loading data</p>';
+  }
+}
