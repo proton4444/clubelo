@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>Football Club Elo Ratings - Country</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+            rel="stylesheet"
+        />
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+        <style>
+            body {
+                font-family: "Inter", sans-serif;
+                background: #1a1d29;
+                color: #e0e0e0;
+            }
+            .sidebar {
+                background: #0f111a;
+                border-right: 1px solid #2a2d3a;
+            }
+            .sidebar-item {
+                padding: 0.75rem 1rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 1px solid #2a2d3a;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .sidebar-item:hover {
+                background: #1a1d29;
+            }
+            .progress-bar {
+                height: 8px;
+                border-radius: 4px;
+                overflow: hidden;
+                background: #2a2d3a;
+            }
+            .progress-fill {
+                height: 100%;
+                transition: width 0.3s;
+            }
+            .card {
+                background: #22252f;
+                border-radius: 8px;
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+            .material-symbols-outlined {
+                font-size: 24px;
+            }
+            ::-webkit-scrollbar {
+                width: 6px;
+            }
+            ::-webkit-scrollbar-track {
+                background: #1a1d29;
+            }
+            ::-webkit-scrollbar-thumb {
+                background: #4a4d5a;
+                border-radius: 3px;
+            }
+            .club-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.75rem 0;
+                border-bottom: 1px solid #2a2d3a;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+            .club-row:hover {
+                background: rgba(99, 102, 241, 0.1);
+            }
+        </style>
+    </head>
+    <body class="flex">
+        <!-- Sidebar -->
+        <aside class="sidebar w-64 h-screen overflow-y-auto fixed left-0 top-0">
+            <div class="p-4 border-b border-gray-700">
+                <a href="/" class="flex items-center gap-2 cursor-pointer hover:opacity-80">
+                    <div
+                        class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center"
+                    >
+                        <span
+                            class="material-symbols-outlined text-white text-sm"
+                            >sports_soccer</span
+                        >
+                    </div>
+                    <div>
+                        <h1 class="text-sm font-bold text-white">
+                            Football Club
+                        </h1>
+                        <p class="text-xs text-gray-400">Elo Ratings</p>
+                    </div>
+                </a>
+            </div>
+
+            <div class="p-4">
+                <h3 class="text-xs font-semibold text-gray-400 mb-3">
+                    Countries/Leagues
+                </h3>
+                <div id="countries-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 flex-1 flex flex-col">
+            <!-- Navigation -->
+            <navigation class="bg-gray-900 border-b border-gray-700 sticky top-0 z-10">
+                <div class="flex items-center justify-between p-4 gap-4">
+                    <button onclick="window.history.back()" class="flex items-center gap-2 px-4 py-2 rounded hover:bg-gray-800 transition">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                        <span>Back</span>
+                    </button>
+                    <h1 id="country-title" class="text-2xl font-bold text-white">Loading...</h1>
+                    <div class="flex-1"></div>
+                </div>
+            </navigation>
+
+            <!-- Content Area -->
+            <div class="flex-1 overflow-y-auto">
+                <div class="p-6">
+                    <!-- Stats Overview -->
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="card">
+                            <div class="text-gray-400 text-sm mb-1">Total Clubs</div>
+                            <div id="total-clubs" class="text-3xl font-bold text-white">0</div>
+                        </div>
+                        <div class="card">
+                            <div class="text-gray-400 text-sm mb-1">Avg Elo</div>
+                            <div id="avg-elo" class="text-3xl font-bold text-purple-400">0</div>
+                        </div>
+                        <div class="card">
+                            <div class="text-gray-400 text-sm mb-1">Top Club Elo</div>
+                            <div id="top-elo" class="text-3xl font-bold text-green-400">0</div>
+                        </div>
+                        <div class="card">
+                            <div class="text-gray-400 text-sm mb-1">Country Code</div>
+                            <div id="country-code" class="text-3xl font-bold text-blue-400">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Clubs Table -->
+                    <div class="card">
+                        <h2 class="text-xl font-bold text-white mb-4">Clubs Ranked by Elo</h2>
+                        <div id="clubs-list" class="space-y-2">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Elo Distribution Chart -->
+                    <div class="card">
+                        <h2 class="text-xl font-bold text-white mb-4">Elo Distribution</h2>
+                        <div style="position: relative; height: 300px;">
+                            <canvas id="distribution-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <script src="/js/country-page.js"></script>
+    </body>
+</html>

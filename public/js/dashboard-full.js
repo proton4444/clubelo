@@ -79,7 +79,7 @@ function renderCountries() {
   list.innerHTML = countryData
     .map(
       (country) => `
-    <div class="sidebar-item">
+    <div class="sidebar-item cursor-pointer hover:bg-purple-900/30 transition" onclick="navigateToCountry('${country.name}')">
       <div class="flex-1">
         <div class="flex items-center gap-2 mb-1">
           <span class="w-4 h-4 bg-purple-600 rounded-full"></span>
@@ -94,6 +94,11 @@ function renderCountries() {
   `,
     )
     .join("");
+}
+
+// Navigate to country page
+function navigateToCountry(countryCode) {
+  window.location.href = `/country.html?country=${countryCode}`;
 }
 
 // Render Euro Top 25
