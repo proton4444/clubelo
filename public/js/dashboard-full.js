@@ -15,6 +15,74 @@ const clubLogos = {
     "https://lh3.googleusercontent.com/aida-public/AB6AXuBiMfZT4Lr84KN4dCLUqsvZedeF-oYenU7mWen0Jl5LkZmC5uWnGHp4FCxaBpr9DxuF6CkFieUorF0aeDkf-Z9RQv7Ozd8AjXZMSuYgvCJcB5-2P3pGDHoN00Tm32Vb_worr2TDL7fyb-Wl5bjz4BTjhCixwO__dJGXcL3sg87lrTWkg2naTJrQRy68wD_RKJPq3zmxs3GD0DyK6NZ1XLjTUAO-IBJ61CV1iyleN0HjPMAbQc39-Dvor8HlbTsSRQCHLwlB25G_2ciJ",
 };
 
+// Country code to flag emoji mapping
+const countryFlags = {
+  ENG: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  SCO: "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+  WAL: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
+  NIR: "🇬🇧",
+  IRL: "🇮🇪",
+  ESP: "🇪🇸",
+  POR: "🇵🇹",
+  FRA: "🇫🇷",
+  ITA: "🇮🇹",
+  GER: "🇩🇪",
+  NED: "🇳🇱",
+  BEL: "🇧🇪",
+  AUT: "🇦🇹",
+  SUI: "🇨🇭",
+  SWE: "🇸🇪",
+  NOR: "🇳🇴",
+  DEN: "🇩🇰",
+  FIN: "🇫🇮",
+  CZE: "🇨🇿",
+  POL: "🇵🇱",
+  ROU: "🇷🇴",
+  HUN: "🇭🇺",
+  GRE: "🇬🇷",
+  TUR: "🇹🇷",
+  RUS: "🇷🇺",
+  UKR: "🇺🇦",
+  SRB: "🇷🇸",
+  HRV: "🇭🇷",
+  SVN: "🇸🇮",
+  SVK: "🇸🇰",
+  BLR: "🇧🇾",
+  UZB: "🇺🇿",
+  KAZ: "🇰🇿",
+  ARM: "🇦🇲",
+  GEO: "🇬🇪",
+  ISL: "🇮🇸",
+  MLT: "🇲🇹",
+  CYP: "🇨🇾",
+  ALB: "🇦🇱",
+  BIH: "🇧🇦",
+  MKD: "🇲🇰",
+  MNE: "🇲🇪",
+  KOS: "🇽🇰",
+  ISR: "🇮🇱",
+  JOR: "🇯🇴",
+  LIB: "🇱🇧",
+  MAR: "🇲🇦",
+  ALG: "🇩🇿",
+  TUN: "🇹🇳",
+  EGY: "🇪🇬",
+  ZAF: "🇿🇦",
+  JPN: "🇯🇵",
+  KOR: "🇰🇷",
+  CHN: "🇨🇳",
+  ARG: "🇦🇷",
+  BRA: "🇧🇷",
+  MEX: "🇲🇽",
+  USA: "🇺🇸",
+  CAN: "🇨🇦",
+};
+
+// Get flag emoji for country code
+function getCountryFlag(countryCode) {
+  return countryFlags[countryCode] || "🏴";
+}
+
 // Initialize
 document.addEventListener("DOMContentLoaded", async () => {
   const params = new URLSearchParams(window.location.search);
@@ -463,14 +531,16 @@ async function renderCountryData(countryCode) {
     document.getElementById("top-elo").textContent = topElo;
     document.getElementById("avg-rank").textContent = avgRank;
 
-    // Render clubs list
+    // Render clubs list with flag emojis
     const clubsList = document.getElementById("clubs-list");
+    const flag = getCountryFlag(countryCode);
     clubsList.innerHTML = clubs
       .map(
         (club, index) => `
       <div class="flex items-center justify-between p-3 bg-gray-800/50 rounded hover:bg-gray-700/50 transition">
         <div class="flex items-center gap-3">
           <span class="text-gray-400 font-mono text-sm w-8">#${index + 1}</span>
+          <span class="text-lg">${flag}</span>
           <span class="text-white font-medium">${club.displayName}</span>
         </div>
         <div class="flex items-center gap-4">
