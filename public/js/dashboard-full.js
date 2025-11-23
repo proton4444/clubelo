@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderCountries();
 
   if (countryCode) {
-    showCountryPage(countryCode);
+    setTimeout(() => showCountryPage(countryCode), 100);
   } else {
     renderEuroTop25();
     renderTodayTable();
