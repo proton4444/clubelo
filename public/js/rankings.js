@@ -5,45 +5,65 @@ let currentFilters = {};
 let totalPages = 1;
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   initializeDatePicker();
   setupEventListeners();
   loadRankings();
 });
 
-// Initialize date picker with today's date
-function initializeDatePicker() {
-  const dateInput = document.getElementById('date-input');
-  const today = new Date().toISOString().split('T')[0];
-  dateInput.value = today;
+// Initialize date picker with latest available date from API
+async function initializeDatePicker() {
+  const dateInput = document.getElementById("date-input");
+  const today = new Date().toISOString().split("T")[0];
   dateInput.max = today;
+
+  try {
+    // Fetch without date to get the latest available date
+    const response = await fetch("/api/elo/rankings?pageSize=1");
+    if (response.ok) {
+      const data = await response.json();
+      if (data.date) {
+        dateInput.value = data.date;
+        return;
+      }
+    }
+  } catch (error) {
+    console.warn("Could not fetch latest date, using yesterday:", error);
+  }
+
+  // Fallback to yesterday if API call fails
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  dateInput.value = yesterday.toISOString().split("T")[0];
 }
 
 // Setup all event listeners
 function setupEventListeners() {
-  document.getElementById('apply-filters').addEventListener('click', () => {
+  document.getElementById("apply-filters").addEventListener("click", () => {
     currentPage = 1;
     loadRankings();
   });
 
-  document.getElementById('reset-filters').addEventListener('click', () => {
-    document.getElementById('date-input').value = new Date().toISOString().split('T')[0];
-    document.getElementById('country-select').value = 'ALL';
-    document.getElementById('level-select').value = 'ALL';
-    document.getElementById('limit-select').value = '100';
-    document.getElementById('search-input').value = '';
-    currentPage = 1;
-    loadRankings();
-  });
+  document
+    .getElementById("reset-filters")
+    .addEventListener("click", async () => {
+      document.getElementById("country-select").value = "ALL";
+      document.getElementById("level-select").value = "ALL";
+      document.getElementById("limit-select").value = "100";
+      document.getElementById("search-input").value = "";
+      await initializeDatePicker(); // Reset to latest available date
+      currentPage = 1;
+      loadRankings();
+    });
 
-  document.getElementById('prev-page').addEventListener('click', () => {
+  document.getElementById("prev-page").addEventListener("click", () => {
     if (currentPage > 1) {
       currentPage--;
       loadRankings();
     }
   });
 
-  document.getElementById('next-page').addEventListener('click', () => {
+  document.getElementById("next-page").addEventListener("click", () => {
     if (currentPage < totalPages) {
       currentPage++;
       loadRankings();
@@ -51,8 +71,8 @@ function setupEventListeners() {
   });
 
   // Search on Enter key
-  document.getElementById('search-input').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
+  document.getElementById("search-input").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
       currentPage = 1;
       loadRankings();
     }
@@ -61,30 +81,30 @@ function setupEventListeners() {
 
 // Load rankings from API
 async function loadRankings() {
-  const loadingEl = document.getElementById('loading');
-  const errorEl = document.getElementById('error');
-  const tableContainer = document.getElementById('rankings-card');
+  const loadingEl = document.getElementById("loading");
+  const errorEl = document.getElementById("error");
+  const tableContainer = document.getElementById("rankings-card");
 
   // Show loading state
-  loadingEl.style.display = 'block';
-  errorEl.style.display = 'none';
-  tableContainer.style.opacity = '0.5';
+  loadingEl.style.display = "block";
+  errorEl.style.display = "none";
+  tableContainer.style.opacity = "0.5";
 
   try {
     // Get filter values
-    const date = document.getElementById('date-input').value;
-    const country = document.getElementById('country-select').value;
-    const level = document.getElementById('level-select').value;
-    const pageSize = parseInt(document.getElementById('limit-select').value);
-    const searchQuery = document.getElementById('search-input').value.trim();
+    const date = document.getElementById("date-input").value;
+    const country = document.getElementById("country-select").value;
+    const level = document.getElementById("level-select").value;
+    const pageSize = parseInt(document.getElementById("limit-select").value);
+    const searchQuery = document.getElementById("search-input").value.trim();
 
     // Build query params
     const params = new URLSearchParams();
-    if (date) params.append('date', date);
-    if (country !== 'ALL') params.append('country', country);
-    if (level !== 'ALL') params.append('level', level);
-    params.append('page', currentPage);
-    params.append('pageSize', pageSize);
+    if (date) params.append("date", date);
+    if (country !== "ALL") params.append("country", country);
+    if (level !== "ALL") params.append("level", level);
+    params.append("page", currentPage);
+    params.append("pageSize", pageSize);
 
     // Fetch rankings
     const response = await fetch(`/api/elo/rankings?${params}`);
@@ -98,8 +118,8 @@ async function loadRankings() {
     // Filter by search query if provided
     let clubs = data.clubs || [];
     if (searchQuery) {
-      clubs = clubs.filter(club =>
-        club.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+      clubs = clubs.filter((club) =>
+        club.displayName.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
@@ -119,38 +139,38 @@ async function loadRankings() {
     updateDateInfo(data.date);
 
     // Hide loading
-    loadingEl.style.display = 'none';
-    tableContainer.style.opacity = '1';
-
+    loadingEl.style.display = "none";
+    tableContainer.style.opacity = "1";
   } catch (error) {
-    console.error('Error loading rankings:', error);
-    loadingEl.style.display = 'none';
+    console.error("Error loading rankings:", error);
+    loadingEl.style.display = "none";
     errorEl.textContent = `Failed to load rankings: ${error.message}`;
-    errorEl.style.display = 'block';
-    tableContainer.style.opacity = '1';
+    errorEl.style.display = "block";
+    tableContainer.style.opacity = "1";
   }
 }
 
 // Update stats cards
 function updateStats(clubs, data) {
   const totalClubs = data.pagination?.total || clubs.length;
-  const countries = new Set(clubs.map(c => c.country)).size;
-  const avgElo = clubs.length > 0
-    ? Math.round(clubs.reduce((sum, c) => sum + c.elo, 0) / clubs.length)
-    : 0;
-  const topElo = clubs.length > 0
-    ? Math.round(Math.max(...clubs.map(c => c.elo)))
-    : 0;
+  const countries = new Set(clubs.map((c) => c.country)).size;
+  const avgElo =
+    clubs.length > 0
+      ? Math.round(clubs.reduce((sum, c) => sum + c.elo, 0) / clubs.length)
+      : 0;
+  const topElo =
+    clubs.length > 0 ? Math.round(Math.max(...clubs.map((c) => c.elo))) : 0;
 
-  document.getElementById('total-clubs').textContent = totalClubs.toLocaleString();
-  document.getElementById('total-countries').textContent = countries;
-  document.getElementById('avg-elo').textContent = avgElo.toLocaleString();
-  document.getElementById('top-elo').textContent = topElo.toLocaleString();
+  document.getElementById("total-clubs").textContent =
+    totalClubs.toLocaleString();
+  document.getElementById("total-countries").textContent = countries;
+  document.getElementById("avg-elo").textContent = avgElo.toLocaleString();
+  document.getElementById("top-elo").textContent = topElo.toLocaleString();
 }
 
 // Render rankings table
 function renderTable(clubs) {
-  const tbody = document.getElementById('rankings-body');
+  const tbody = document.getElementById("rankings-body");
 
   if (clubs.length === 0) {
     tbody.innerHTML = `
@@ -165,7 +185,9 @@ function renderTable(clubs) {
     return;
   }
 
-  tbody.innerHTML = clubs.map(club => `
+  tbody.innerHTML = clubs
+    .map(
+      (club) => `
     <tr>
       <td class="col-rank">
         <div class="rank-badge ${getRankClass(club.rank)}">${club.rank}</div>
@@ -188,22 +210,24 @@ function renderTable(clubs) {
         </button>
       </td>
     </tr>
-  `).join('');
+  `,
+    )
+    .join("");
 }
 
 // Get rank badge class
 function getRankClass(rank) {
-  if (rank === 1) return 'rank-1';
-  if (rank === 2) return 'rank-2';
-  if (rank === 3) return 'rank-3';
-  return 'rank-other';
+  if (rank === 1) return "rank-1";
+  if (rank === 2) return "rank-2";
+  if (rank === 3) return "rank-3";
+  return "rank-other";
 }
 
 // Update pagination controls
 function updatePagination(pagination) {
-  const prevBtn = document.getElementById('prev-page');
-  const nextBtn = document.getElementById('next-page');
-  const pageInfo = document.getElementById('page-info');
+  const prevBtn = document.getElementById("prev-page");
+  const nextBtn = document.getElementById("next-page");
+  const pageInfo = document.getElementById("page-info");
 
   prevBtn.disabled = pagination.page === 1;
   nextBtn.disabled = pagination.page >= pagination.totalPages;
@@ -213,12 +237,12 @@ function updatePagination(pagination) {
 
 // Update date info badge
 function updateDateInfo(date) {
-  const dateInfo = document.getElementById('date-info');
+  const dateInfo = document.getElementById("date-info");
   if (date) {
-    const formattedDate = new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    const formattedDate = new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
     dateInfo.textContent = `📅 ${formattedDate}`;
   }
@@ -231,7 +255,7 @@ function viewClubHistory(clubId) {
 
 // Escape HTML to prevent XSS
 function escapeHtml(text) {
-  const div = document.createElement('div');
+  const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 }
