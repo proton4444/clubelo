@@ -15,72 +15,96 @@ const clubLogos = {
     "https://lh3.googleusercontent.com/aida-public/AB6AXuBiMfZT4Lr84KN4dCLUqsvZedeF-oYenU7mWen0Jl5LkZmC5uWnGHp4FCxaBpr9DxuF6CkFieUorF0aeDkf-Z9RQv7Ozd8AjXZMSuYgvCJcB5-2P3pGDHoN00Tm32Vb_worr2TDL7fyb-Wl5bjz4BTjhCixwO__dJGXcL3sg87lrTWkg2naTJrQRy68wD_RKJPq3zmxs3GD0DyK6NZ1XLjTUAO-IBJ61CV1iyleN0HjPMAbQc39-Dvor8HlbTsSRQCHLwlB25G_2ciJ",
 };
 
-// Country code to flag emoji mapping
+// Country code to flag emoji mapping (ISO-2 overrides for emoji rendering)
 const countryFlags = {
-  ENG: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-  SCO: "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-  WAL: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
-  NIR: "🇬🇧",
-  IRL: "🇮🇪",
-  ESP: "🇪🇸",
-  POR: "🇵🇹",
-  FRA: "🇫🇷",
-  ITA: "🇮🇹",
-  GER: "🇩🇪",
-  NED: "🇳🇱",
-  BEL: "🇧🇪",
-  AUT: "🇦🇹",
-  SUI: "🇨🇭",
-  SWE: "🇸🇪",
-  NOR: "🇳🇴",
-  DEN: "🇩🇰",
-  FIN: "🇫🇮",
-  CZE: "🇨🇿",
-  POL: "🇵🇱",
-  ROU: "🇷🇴",
-  HUN: "🇭🇺",
-  GRE: "🇬🇷",
-  TUR: "🇹🇷",
-  RUS: "🇷🇺",
-  UKR: "🇺🇦",
-  SRB: "🇷🇸",
-  HRV: "🇭🇷",
-  SVN: "🇸🇮",
-  SVK: "🇸🇰",
-  BLR: "🇧🇾",
-  UZB: "🇺🇿",
-  KAZ: "🇰🇿",
-  ARM: "🇦🇲",
-  GEO: "🇬🇪",
-  ISL: "🇮🇸",
-  MLT: "🇲🇹",
-  CYP: "🇨🇾",
-  ALB: "🇦🇱",
-  BIH: "🇧🇦",
-  MKD: "🇲🇰",
-  MNE: "🇲🇪",
-  KOS: "🇽🇰",
-  ISR: "🇮🇱",
-  JOR: "🇯🇴",
-  LIB: "🇱🇧",
-  MAR: "🇲🇦",
-  ALG: "🇩🇿",
-  TUN: "🇹🇳",
-  EGY: "🇪🇬",
-  ZAF: "🇿🇦",
-  JPN: "🇯🇵",
-  KOR: "🇰🇷",
-  CHN: "🇨🇳",
-  ARG: "🇦🇷",
-  BRA: "🇧🇷",
-  MEX: "🇲🇽",
-  USA: "🇺🇸",
-  CAN: "🇨🇦",
+  ENG: "GB",
+  SCO: "GB",
+  WAL: "GB",
+  NIR: "GB",
+  IRL: "IE",
+  ESP: "ES",
+  POR: "PT",
+  FRA: "FR",
+  ITA: "IT",
+  GER: "DE",
+  NED: "NL",
+  BEL: "BE",
+  AUT: "AT",
+  SUI: "CH",
+  SWE: "SE",
+  NOR: "NO",
+  DEN: "DK",
+  FIN: "FI",
+  CZE: "CZ",
+  POL: "PL",
+  ROU: "RO",
+  HUN: "HU",
+  GRE: "GR",
+  TUR: "TR",
+  RUS: "RU",
+  UKR: "UA",
+  SRB: "RS",
+  HRV: "HR",
+  SVN: "SI",
+  SVK: "SK",
+  BLR: "BY",
+  UZB: "UZ",
+  KAZ: "KZ",
+  ARM: "AM",
+  GEO: "GE",
+  ISL: "IS",
+  MLT: "MT",
+  CYP: "CY",
+  ALB: "AL",
+  BIH: "BA",
+  MKD: "MK",
+  MNE: "ME",
+  KOS: "XK",
+  ISR: "IL",
+  JOR: "JO",
+  LIB: "LB",
+  MAR: "MA",
+  ALG: "DZ",
+  TUN: "TN",
+  EGY: "EG",
+  ZAF: "ZA",
+  JPN: "JP",
+  KOR: "KR",
+  CHN: "CN",
+  ARG: "AR",
+  BRA: "BR",
+  MEX: "MX",
+  USA: "US",
+  CAN: "CA",
 };
+
+const flagEmojiCache = {};
+const DEFAULT_FLAG = String.fromCodePoint(0x1f3f3, 0xfe0f);
 
 // Get flag emoji for country code
 function getCountryFlag(countryCode) {
-  return countryFlags[countryCode] || "🏴";
+  if (!countryCode) return DEFAULT_FLAG;
+
+  const code = countryCode.toUpperCase();
+  const iso2 =
+    countryFlags[code] || (code.length === 2 ? code : code.slice(0, 2));
+
+  return isoToFlagEmoji(iso2) || DEFAULT_FLAG;
+}
+
+function isoToFlagEmoji(iso2) {
+  if (!iso2 || !/^[A-Z]{2}$/.test(iso2)) return null;
+
+  const upper = iso2.toUpperCase();
+  if (flagEmojiCache[upper]) return flagEmojiCache[upper];
+
+  const emoji = String.fromCodePoint(
+    0x1f1e6 + (upper.charCodeAt(0) - 65),
+    0x1f1e6 + (upper.charCodeAt(1) - 65),
+  );
+
+  flagEmojiCache[upper] = emoji;
+  return emoji;
 }
 
 // Initialize
@@ -182,11 +206,13 @@ function renderEuroTop25() {
     .map((club, index) => {
       const barWidth = (club.elo / 2100) * 100;
       const color = colors[index % colors.length];
+      const flag = getCountryFlag(club.country);
 
       return `
       <div class="flex items-center gap-2 text-sm">
         <span class="text-gray-400 w-6">${index + 1}</span>
         <img src="${clubLogos[club.displayName] || ""}" class="w-5 h-5 rounded-full bg-gray-700" onerror="this.style.display='none'"/>
+        <span class="text-lg">${flag}</span>
         <span class="flex-1 text-white">${club.displayName || club.apiName}</span>
         <div class="w-24 h-6 bg-gray-700 rounded overflow-hidden">
           <div class="h-full" style="width: ${barWidth}%; background: ${color}"></div>
@@ -211,6 +237,7 @@ function renderTodayTable() {
       <td class="py-3">
         <div class="flex items-center gap-2">
           <img src="${clubLogos[club.displayName] || ""}" class="w-5 h-5 rounded-full bg-gray-700" onerror="this.style.display='none'"/>
+          <span class="text-lg">${getCountryFlag(club.country)}</span>
           <span class="text-white">${club.displayName || club.apiName}</span>
         </div>
       </td>
@@ -250,6 +277,7 @@ function renderYesterdayTable() {
       <td class="py-3">
         <div class="flex items-center gap-2">
           <img src="${clubLogos[club.displayName] || ""}" class="w-5 h-5 rounded-full bg-gray-700" onerror="this.style.display='none'"/>
+          <span class="text-lg">${getCountryFlag(club.country)}</span>
           <span class="text-white">${club.displayName || club.apiName}</span>
         </div>
       </td>
@@ -288,12 +316,14 @@ function renderCoachesTable() {
       <td class="py-3">
         <div class="flex items-center gap-2">
           <div class="w-8 h-8 bg-gray-700 rounded-full"></div>
+          <span class="text-lg">${getCountryFlag(club.country)}</span>
           <span class="text-white text-sm">${club.displayName || club.apiName}</span>
         </div>
       </td>
       <td class="py-3">
         <div class="flex items-center gap-2">
           <img src="${clubLogos[club.displayName] || ""}" class="w-5 h-5 rounded-full bg-gray-700" onerror="this.style.display='none'"/>
+          <span class="text-lg">${getCountryFlag(club.country)}</span>
           <span class="text-white text-sm">${club.displayName || club.apiName}</span>
         </div>
       </td>

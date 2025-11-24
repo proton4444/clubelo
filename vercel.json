@@ -1,19 +1,21 @@
 {
-    "version": 2,
-    "rewrites": [
-        {
-            "source": "/api/(.*)",
-            "destination": "/api/index.ts"
-        }
-    ],
-    "crons": [
-        {
-            "path": "/api/cron/import-daily",
-            "schedule": "0 6 * * *"
-        },
-        {
-            "path": "/api/cron/import-fixtures",
-            "schedule": "0 7 * * *"
-        }
-    ]
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "startCommand": "node dist/server-refactored.js",
+  "env": {
+    "NODE_ENV": "production",
+    "PORT": "3001"
+  },
+  "functions": {
+    "src/server-refactored.ts": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    }
+  ]
 }

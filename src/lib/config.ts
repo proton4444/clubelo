@@ -5,7 +5,7 @@
  * Make sure to create a .env file based on .env.example
  */
 
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -13,13 +13,13 @@ dotenv.config();
 export const config = {
   // Database connection string (required)
   // Vercel Postgres uses POSTGRES_URL by default
-  databaseUrl: process.env.DATABASE_URL || process.env.POSTGRES_URL || '',
+  databaseUrl: process.env.DATABASE_URL || process.env.POSTGRES_URL || "",
 
   // ClubElo API base URL (no trailing slash)
-  clubeloApiBase: process.env.CLUBELO_API_BASE || 'http://api.clubelo.com',
+  clubeloApiBase: process.env.CLUBELO_API_BASE || "http://api.clubelo.com",
 
-  // API server port
-  port: parseInt(process.env.PORT || '3000', 10),
+  // API server port (default to 3001 for local dev; override via PORT)
+  port: parseInt(process.env.PORT || "3001", 10),
 
   // HTTP request timeout (in milliseconds)
   httpTimeout: 120000,
@@ -30,5 +30,5 @@ export const config = {
 
 // Validate required configuration
 if (!config.databaseUrl) {
-  throw new Error('DATABASE_URL environment variable is required');
+  throw new Error("DATABASE_URL environment variable is required");
 }

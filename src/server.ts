@@ -5,36 +5,51 @@
  * This is what your frontend will call - never call ClubElo API directly!
  */
 
-import express, { Request, Response } from 'express';
-import path from 'path';
-import swaggerUi from 'swagger-ui-express';
-import { config } from './lib/config';
-import { db } from './lib/db';
-import * as openApiSpec from '../openapi.json';
-import { fetchDailySnapshot } from './lib/clubelo-api';
-import { importDailySnapshot } from './lib/importer';
-import { importFixtures } from './lib/fixtures-importer';
+import express, { Request, Response } from "express";
+import path from "path";
+import swaggerUi from "swagger-ui-express";
+import { config } from "./lib/config";
+import { db } from "./lib/db";
+import * as openApiSpec from "../openapi.json";
+import { fetchDailySnapshot } from "./lib/clubelo-api";
+import { importDailySnapshot } from "./lib/importer";
+import { importFixtures } from "./lib/fixtures-importer";
 
 const app = express();
+
+// Format a JS Date (or string) to YYYY-MM-DD without timezone drift
+function formatDateOnly(value: any): string | null {
+  if (!value) return null;
+  if (typeof value === "string") return value.split("T")[0];
+  const d = value as Date;
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 // Middleware
 app.use(express.json());
 
 // API Documentation (Swagger UI) - Development only
 // Access at: http://localhost:3000/api/docs
-if (process.env.NODE_ENV !== 'production') {
-  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'ClubElo API Documentation',
-  }));
+if (process.env.NODE_ENV !== "production") {
+  app.use(
+    "/api/docs",
+    swaggerUi.serve,
+    swaggerUi.setup(openApiSpec, {
+      customCss: ".swagger-ui .topbar { display: none }",
+      customSiteTitle: "ClubElo API Documentation",
+    }),
+  );
 }
 
 // Serve static files from the public directory
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, "../public")));
 
 // Health check endpoint
-app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/health", (req: Request, res: Response) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 /**
@@ -68,7 +83,7 @@ app.get('/health', (req: Request, res: Response) => {
  *     }
  *   }
  */
-app.get('/api/elo/rankings', async (req: Request, res: Response) => {
+app.get("/api/elo/rankings", async (req: Request, res: Response) => {
   try {
     const {
       date: dateParam,
@@ -84,7 +99,9 @@ app.get('/api/elo/rankings', async (req: Request, res: Response) => {
     const page = pageParam ? parseInt(pageParam as string, 10) : 1;
     const pageSize = pageSizeParam
       ? parseInt(pageSizeParam as string, 10)
-      : (limitParam ? parseInt(limitParam as string, 10) : 100);
+      : limitParam
+        ? parseInt(limitParam as string, 10)
+        : 100;
     const offset = (page - 1) * pageSize;
 
     // Parse filter parameters
@@ -93,10 +110,12 @@ app.get('/api/elo/rankings', async (req: Request, res: Response) => {
 
     // Validate pagination
     if (page < 1) {
-      return res.status(400).json({ error: 'Page must be >= 1' });
+      return res.status(400).json({ error: "Page must be >= 1" });
     }
     if (pageSize < 1 || pageSize > 1000) {
-      return res.status(400).json({ error: 'Page size must be between 1 and 1000' });
+      return res
+        .status(400)
+        .json({ error: "Page size must be between 1 and 1000" });
     }
 
     // Determine which date to use
@@ -106,24 +125,26 @@ app.get('/api/elo/rankings', async (req: Request, res: Response) => {
       // Validate the provided date
       const parsedDate = new Date(dateParam as string);
       if (isNaN(parsedDate.getTime())) {
-        return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
+        return res
+          .status(400)
+          .json({ error: "Invalid date format. Use YYYY-MM-DD" });
       }
-      targetDate = parsedDate.toISOString().split('T')[0];
+      targetDate = formatDateOnly(parsedDate)!;
     } else {
       // Find the latest date we have data for
       const latestResult = await db.query(
-        'SELECT MAX(date) as max_date FROM elo_ratings'
+        "SELECT MAX(date)::text as max_date FROM elo_ratings",
       );
 
       if (!latestResult.rows[0].max_date) {
-        return res.status(404).json({ error: 'No rating data available' });
+        return res.status(404).json({ error: "No rating data available" });
       }
 
-      targetDate = new Date(latestResult.rows[0].max_date).toISOString().split('T')[0];
+      targetDate = latestResult.rows[0].max_date;
     }
 
     // Build the WHERE clause
-    const whereClauses = ['e.date = $1'];
+    const whereClauses = ["e.date = $1"];
     const params: any[] = [targetDate];
 
     if (country) {
@@ -141,7 +162,7 @@ app.get('/api/elo/rankings', async (req: Request, res: Response) => {
       params.push(minElo);
     }
 
-    const whereClause = whereClauses.join(' AND ');
+    const whereClause = whereClauses.join(" AND ");
 
     // Count total results for pagination
     const countQuery = `
@@ -170,7 +191,7 @@ app.get('/api/elo/rankings', async (req: Request, res: Response) => {
     const result = await db.query(query, params);
 
     // Transform to response format
-    const clubs = result.rows.map(row => ({
+    const clubs = result.rows.map((row) => ({
       id: row.id,
       apiName: row.api_name,
       displayName: row.display_name,
@@ -193,10 +214,9 @@ app.get('/api/elo/rankings', async (req: Request, res: Response) => {
         totalPages,
       },
     });
-
   } catch (error) {
-    console.error('Error fetching rankings:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching rankings:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -232,7 +252,7 @@ app.get('/api/elo/rankings', async (req: Request, res: Response) => {
  *     ]
  *   }
  */
-app.get('/api/elo/clubs/:id/history', async (req: Request, res: Response) => {
+app.get("/api/elo/clubs/:id/history", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { from: fromParam, to: toParam } = req.query;
@@ -244,50 +264,51 @@ app.get('/api/elo/clubs/:id/history', async (req: Request, res: Response) => {
 
     if (isNaN(clubId)) {
       // Search by API name
-      clubQuery = 'SELECT * FROM clubs WHERE api_name = $1';
+      clubQuery = "SELECT * FROM clubs WHERE api_name = $1";
       clubParams = [id];
     } else {
       // Search by ID
-      clubQuery = 'SELECT * FROM clubs WHERE id = $1';
+      clubQuery = "SELECT * FROM clubs WHERE id = $1";
       clubParams = [clubId];
     }
 
     const clubResult = await db.query(clubQuery, clubParams);
 
     if (clubResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Club not found' });
+      return res.status(404).json({ error: "Club not found" });
     }
 
     const club = clubResult.rows[0];
 
     // Build history query
-    let historyQuery = 'SELECT date, elo, rank FROM elo_ratings WHERE club_id = $1';
+    let historyQuery =
+      "SELECT date, elo, rank FROM elo_ratings WHERE club_id = $1";
     const historyParams: any[] = [club.id];
 
     if (fromParam) {
       const fromDate = new Date(fromParam as string);
       if (!isNaN(fromDate.getTime())) {
-        historyQuery += ' AND date >= $' + (historyParams.length + 1);
-        historyParams.push(fromDate.toISOString().split('T')[0]);
+        historyQuery += " AND date >= $" + (historyParams.length + 1);
+        historyParams.push(formatDateOnly(fromDate));
       }
     }
 
     if (toParam) {
       const toDate = new Date(toParam as string);
       if (!isNaN(toDate.getTime())) {
-        historyQuery += ' AND date <= $' + (historyParams.length + 1);
-        historyParams.push(toDate.toISOString().split('T')[0]);
+        historyQuery += " AND date <= $" + (historyParams.length + 1);
+        historyParams.push(formatDateOnly(toDate));
       }
     }
 
-    historyQuery += ' ORDER BY date ASC';
+    historyQuery += " ORDER BY date ASC";
 
     // Fetch rating history
     const historyResult = await db.query(historyQuery, historyParams);
 
     // Transform to response format
-    const history = historyResult.rows.map(row => ({
-      date: new Date(row.date).toISOString().split('T')[0],
+    const history = historyResult.rows.map((row) => ({
+      date: formatDateOnly(row.date),
       elo: parseFloat(row.elo),
       rank: row.rank,
     }));
@@ -302,10 +323,9 @@ app.get('/api/elo/clubs/:id/history', async (req: Request, res: Response) => {
       },
       history,
     });
-
   } catch (error) {
-    console.error('Error fetching club history:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching club history:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -337,33 +357,35 @@ app.get('/api/elo/clubs/:id/history', async (req: Request, res: Response) => {
  *     ]
  *   }
  */
-app.get('/api/elo/clubs', async (req: Request, res: Response) => {
+app.get("/api/elo/clubs", async (req: Request, res: Response) => {
   try {
     const { q, country, limit: limitParam } = req.query;
     const limit = limitParam ? parseInt(limitParam as string, 10) : 100;
 
     // Build query
-    let query = 'SELECT id, api_name, display_name, country, level FROM clubs WHERE 1=1';
+    let query =
+      "SELECT id, api_name, display_name, country, level FROM clubs WHERE 1=1";
     const params: any[] = [];
 
     if (q) {
       // Search in display name (case-insensitive)
-      query += ' AND LOWER(display_name) LIKE LOWER($' + (params.length + 1) + ')';
+      query +=
+        " AND LOWER(display_name) LIKE LOWER($" + (params.length + 1) + ")";
       params.push(`%${q}%`);
     }
 
     if (country) {
-      query += ' AND country = $' + (params.length + 1);
+      query += " AND country = $" + (params.length + 1);
       params.push(country);
     }
 
-    query += ' ORDER BY display_name ASC LIMIT $' + (params.length + 1);
+    query += " ORDER BY display_name ASC LIMIT $" + (params.length + 1);
     params.push(limit);
 
     // Fetch clubs
     const result = await db.query(query, params);
 
-    const clubs = result.rows.map(row => ({
+    const clubs = result.rows.map((row) => ({
       id: row.id,
       apiName: row.api_name,
       displayName: row.display_name,
@@ -372,10 +394,9 @@ app.get('/api/elo/clubs', async (req: Request, res: Response) => {
     }));
 
     res.json({ clubs });
-
   } catch (error) {
-    console.error('Error fetching clubs:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching clubs:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -428,7 +449,7 @@ app.get('/api/elo/clubs', async (req: Request, res: Response) => {
  *     ]
  *   }
  */
-app.get('/api/elo/fixtures', async (req: Request, res: Response) => {
+app.get("/api/elo/fixtures", async (req: Request, res: Response) => {
   try {
     const {
       date: dateParam,
@@ -451,7 +472,7 @@ app.get('/api/elo/fixtures', async (req: Request, res: Response) => {
       const date = new Date(dateParam as string);
       if (!isNaN(date.getTime())) {
         whereClauses.push(`f.match_date = $${params.length + 1}`);
-        params.push(date.toISOString().split('T')[0]);
+        params.push(formatDateOnly(date));
       }
     } else if (fromParam || toParam) {
       // Date range
@@ -459,14 +480,14 @@ app.get('/api/elo/fixtures', async (req: Request, res: Response) => {
         const fromDate = new Date(fromParam as string);
         if (!isNaN(fromDate.getTime())) {
           whereClauses.push(`f.match_date >= $${params.length + 1}`);
-          params.push(fromDate.toISOString().split('T')[0]);
+          params.push(formatDateOnly(fromDate));
         }
       }
       if (toParam) {
         const toDate = new Date(toParam as string);
         if (!isNaN(toDate.getTime())) {
           whereClauses.push(`f.match_date <= $${params.length + 1}`);
-          params.push(toDate.toISOString().split('T')[0]);
+          params.push(formatDateOnly(toDate));
         }
       }
     }
@@ -481,7 +502,8 @@ app.get('/api/elo/fixtures', async (req: Request, res: Response) => {
       params.push(`%${competition}%`);
     }
 
-    const whereClause = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
+    const whereClause =
+      whereClauses.length > 0 ? "WHERE " + whereClauses.join(" AND ") : "";
 
     // Build the query
     const query = `
@@ -506,9 +528,9 @@ app.get('/api/elo/fixtures', async (req: Request, res: Response) => {
     const result = await db.query(query, params);
 
     // Transform to response format
-    const fixtures = result.rows.map(row => ({
+    const fixtures = result.rows.map((row) => ({
       id: row.id,
-      matchDate: new Date(row.match_date).toISOString().split('T')[0],
+      matchDate: formatDateOnly(row.match_date),
       homeTeam: {
         id: row.home_club_id,
         name: row.home_club_name,
@@ -524,17 +546,18 @@ app.get('/api/elo/fixtures', async (req: Request, res: Response) => {
       country: row.country,
       competition: row.competition,
       predictions: {
-        homeWin: row.home_win_prob !== null ? parseFloat(row.home_win_prob) : null,
+        homeWin:
+          row.home_win_prob !== null ? parseFloat(row.home_win_prob) : null,
         draw: row.draw_prob !== null ? parseFloat(row.draw_prob) : null,
-        awayWin: row.away_win_prob !== null ? parseFloat(row.away_win_prob) : null,
+        awayWin:
+          row.away_win_prob !== null ? parseFloat(row.away_win_prob) : null,
       },
     }));
 
     res.json({ fixtures });
-
   } catch (error) {
-    console.error('Error fetching fixtures:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching fixtures:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -543,80 +566,94 @@ app.get('/api/elo/fixtures', async (req: Request, res: Response) => {
 const validateCronSecret = (req: Request, res: Response, next: Function) => {
   const authHeader = req.headers.authorization;
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: "Unauthorized" });
   }
   next();
 };
 
-app.post('/api/cron/import-daily', validateCronSecret, async (req: Request, res: Response) => {
-  try {
-    const dateStr = req.query.date as string;
-    let date: string;
+app.post(
+  "/api/cron/import-daily",
+  validateCronSecret,
+  async (req: Request, res: Response) => {
+    try {
+      const dateStr = req.query.date as string;
+      let date: string;
 
-    if (dateStr) {
-      date = dateStr;
-    } else {
-      // Default to yesterday
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      date = yesterday.toISOString().split('T')[0];
+      if (dateStr) {
+        date = dateStr;
+      } else {
+        // Default to yesterday
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        date = yesterday.toISOString().split("T")[0];
+      }
+
+      console.log(`[Cron] Starting daily import for ${date}...`);
+      const rows = await fetchDailySnapshot(date);
+
+      if (rows.length > 0) {
+        await importDailySnapshot(rows, new Date(date));
+        res.json({ success: true, count: rows.length, date });
+      } else {
+        res.json({ success: true, count: 0, message: "No data found" });
+      }
+    } catch (error) {
+      console.error("[Cron] Daily import failed:", error);
+      res.status(500).json({ error: "Import failed" });
     }
+  },
+);
 
-    console.log(`[Cron] Starting daily import for ${date}...`);
-    const rows = await fetchDailySnapshot(date);
+app.post(
+  "/api/cron/import-fixtures",
+  validateCronSecret,
+  async (req: Request, res: Response) => {
+    try {
+      const date = req.query.date as string; // Optional
+      console.log(
+        `[Cron] Starting fixtures import${date ? ` for ${date}` : ""}...`,
+      );
 
-    if (rows.length > 0) {
-      await importDailySnapshot(rows, new Date(date));
-      res.json({ success: true, count: rows.length, date });
-    } else {
-      res.json({ success: true, count: 0, message: 'No data found' });
+      const result = await importFixtures(date);
+      res.json({ ok: true, ...result });
+    } catch (error) {
+      console.error("[Cron] Fixtures import failed:", error);
+      res.status(500).json({ error: "Import failed" });
     }
-  } catch (error) {
-    console.error('[Cron] Daily import failed:', error);
-    res.status(500).json({ error: 'Import failed' });
-  }
-});
-
-app.post('/api/cron/import-fixtures', validateCronSecret, async (req: Request, res: Response) => {
-  try {
-    const date = req.query.date as string; // Optional
-    console.log(`[Cron] Starting fixtures import${date ? ` for ${date}` : ''}...`);
-
-    const result = await importFixtures(date);
-    res.json({ ok: true, ...result });
-  } catch (error) {
-    console.error('[Cron] Fixtures import failed:', error);
-    res.status(500).json({ error: 'Import failed' });
-  }
-});
+  },
+);
 
 // Serve index.html for root path
-app.get('/', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+app.get("/", (req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, "../public/index.html"));
 });
 
 // 404 handler for API routes only
-app.use('/api/*', (req: Request, res: Response) => {
-  res.status(404).json({ error: 'Not found' });
+app.use("/api/*", (req: Request, res: Response) => {
+  res.status(404).json({ error: "Not found" });
 });
 
 // Export the app for testing
 export default app;
 
 // Only start the server if not in test mode and not on Vercel
-if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+if (process.env.NODE_ENV !== "test" && !process.env.VERCEL) {
   const PORT = config.port;
   app.listen(PORT, () => {
     console.log(`\n🚀 ClubElo API server running on http://localhost:${PORT}`);
-    console.log('\nAvailable endpoints:');
-    console.log('  GET  /health');
-    console.log('  GET  /api/elo/rankings?date=YYYY-MM-DD&country=ENG&limit=100');
-    console.log('  GET  /api/elo/clubs/:id/history?from=YYYY-MM-DD&to=YYYY-MM-DD');
-    console.log('  GET  /api/elo/clubs?q=search&country=ENG&limit=100');
-    console.log('  GET  /api/elo/fixtures?date=YYYY-MM-DD&country=ENG');
-    if (process.env.NODE_ENV !== 'production') {
+    console.log("\nAvailable endpoints:");
+    console.log("  GET  /health");
+    console.log(
+      "  GET  /api/elo/rankings?date=YYYY-MM-DD&country=ENG&limit=100",
+    );
+    console.log(
+      "  GET  /api/elo/clubs/:id/history?from=YYYY-MM-DD&to=YYYY-MM-DD",
+    );
+    console.log("  GET  /api/elo/clubs?q=search&country=ENG&limit=100");
+    console.log("  GET  /api/elo/fixtures?date=YYYY-MM-DD&country=ENG");
+    if (process.env.NODE_ENV !== "production") {
       console.log(`\n📚 API Documentation: http://localhost:${PORT}/api/docs`);
     }
-    console.log('');
+    console.log("");
   });
 }

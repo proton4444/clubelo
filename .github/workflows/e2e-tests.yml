@@ -1,0 +1,113 @@
+name: E2E Tests with Playwright
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: clubelo_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Setup test database
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/clubelo_test
+        run: |
+          npx prisma migrate deploy --skip-generate
+          npx prisma db seed --skip-generate
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: http://localhost:3001
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/clubelo_test
+          NODE_ENV: test
+        run: |
+          # Start server in background
+          npm run start &
+          SERVER_PID=$!
+
+          # Wait for server to be ready
+          timeout 30 bash -c 'until curl -f http://localhost:3001/health; do sleep 1; done'
+
+          # Run tests
+          npm run test:e2e
+
+          # Kill server
+          kill $SERVER_PID || true
+
+      - name: Upload Playwright test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 30
+
+      - name: Comment PR with test results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const resultsPath = 'test-results/results.json';
+
+            if (!fs.existsSync(resultsPath)) {
+              console.log('No test results found');
+              return;
+            }
+
+            const results = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
+            const total = results.stats.expected;
+            const failed = results.stats.unexpected;
+            const skipped = results.stats.skipped;
+            const passed = total - failed;
+
+            let comment = `## Playwright E2E Test Results\n\n`;
+            comment += `| Metric | Count |\n`;
+            comment += `|--------|-------|\n`;
+            comment += `| ✅ Passed | ${passed} |\n`;
+            comment += `| ❌ Failed | ${failed} |\n`;
+            comment += `| ⏭️ Skipped | ${skipped} |\n`;
+            comment += `| 📊 Total | ${total} |\n`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
